@@ -32,13 +32,14 @@ class Dataset:
     val_y: pd.Series
     test_y: pd.Series
 
-    def merge_in(self, dataset):
-        self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
-        self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
-        self.test_x = pd.concat([self.test_x, dataset.test_x], axis=0)
-        self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
-        self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
-        self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
+
+    # def merge_in(self, dataset):
+    #     self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
+    #     self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
+    #     self.test_x = pd.concat([self.test_x, dataset.test_x], axis=0)
+    #     self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
+    #     self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
+    #     self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
 
     def persist(self, dirpath):
         self.train_x.to_csv(os.path.join(dirpath,'train_x.csv'), sep=';', index=False)
