@@ -41,3 +41,6 @@ MANIFEST
 
 # Pycharm
 .idea/
+
+# temporary folder where we explore things
+explore/
