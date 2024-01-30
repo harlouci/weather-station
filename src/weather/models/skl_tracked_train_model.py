@@ -1,9 +1,53 @@
 import abc
 from typing import List
+import os
+import joblib
+
 import mlflow
 
 from src.weather.data.prep_datasets import Dataset
 from src.weather.features.dataframe_transformer import SimpleCustomPipeline
+from src.weather.mlflow.tracking import Experiment
+from src.weather.helpers.utils import create_temporary_dir_if_not_exists
+from src.weather.helpers.utils import clean_temporary_dir
+from src.weather.helpers.utils import camel_to_snake
+
+
+class SKLModelWrapper(mlflow.pyfunc.PythonModel):
+    """
+    Class to encapsulate Scikit-learn models for training and inference.
+    """
+
+    def load_context(self, context):
+        """
+        Loads the serialized Scikit-learn transformer and classifier artifacts.
+
+        This method is invoked when an MLflow model is loaded using pyfunc.load_model(),
+        constructing the Python model instance.
+
+        Args:
+        - context: MLflow context containing the stored model artifacts.
+        """
+        import joblib
+        import src
+        self.loaded_data_transformer = joblib.load(context.artifacts["feature_eng_path"])
+        self.loaded_classifier = joblib.load(context.artifacts["model_path"])
+
+    def predict(self, context, model_input):
+        """
+        Generates predictions using the loaded Scikit-learn transformer and classifier.
+
+        This method retrieves the Scikit-learn transformer and classifier artifacts.
+
+        Args:
+        - context: MLflow context containing the stored model artifacts.
+        - model_input: Input data to be processed by the model.
+
+        Returns:
+        - Tuple: Loaded transformer and classifier artifacts.
+        """
+        return self.loaded_data_transformer, self.loaded_classifier
+
 
 def train_and_evaluate_with_tracking(
         data: Dataset, data_transformer: SimpleCustomPipeline,
