@@ -72,6 +72,32 @@ class DataFrameColumnTransformer(ColumnTransformer):
         return pd.DataFrame(X_array, columns=feature_names, index=X.index)
 
 
+
+class RemoveLastNRowsTransformer(BaseEstimator, TransformerMixin):
+    """
+    A custom transformer that removes the last N rows from a DataFrame.
+
+    Parameters:
+    - n_rows: int. The number of rows to remove from the end of the DataFrame.
+    """
+
+    def __init__(self, n_rows=1):
+        self.n_rows = n_rows
+
+    def fit(self, X, y=None):
+        # Nothing to fit, so we just return the instance
+        return self
+
+    def transform(self, X):
+        # Check if X is a DataFrame
+        if not hasattr(X, 'iloc'):
+            raise ValueError("Input is not a pandas DataFrame")
+
+        # Remove the last n_rows from X
+        X_transformed = X.iloc[:-self.n_rows]
+        return X_transformed
+
+
 class SimpleCustomPipeline(Pipeline):
     def get_feature_names_out(self, input_features=None):
         """Get output feature names for transformation."""

@@ -63,22 +63,24 @@ def spliting_data(data:pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2))
 
 def prepare_data(split_data:Tuple[pd.DataFrame], training_transform, test_transform):
     train = training_transform.fit_transform(split_data[0])
-    valid = training_transform.fit_transform(split_data[1])
+    valid = training_transform.transform(split_data[1])
     test = test_transform.fit_transform(split_data[2])
     return train, valid, test
 
+def remove_last_n_rows(data: pd.DataFrame, n: int) -> pd.DataFrame:
+    return data[:-n]
 
-
-def make_dataset(data:pd.DataFrame, training_transform, test_transform, target_transform, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
+def make_dataset(data:pd.DataFrame, training_transform, test_transform, target_transform, remove_last_rows_transformer, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
     split_data:Tuple[pd.DataFrame] = spliting_data(data, split_size)
     split_data = prepare_data(split_data, training_transform, test_transform)
     target_train = target_transform.fit_transform(split_data[0])
     target_val = target_transform.transform(split_data[1])
     target_test = target_transform.transform(split_data[2])
-    dataset = Dataset(train_x= split_data[0],
-                      val_x=split_data[1],
-                      test_x = split_data[2],
-                      train_y=target_train,
-                      val_y = target_val,
-                      test_y = target_test)
+
+    dataset = Dataset(train_x= remove_last_rows_transformer.transform(split_data[0]),
+                      val_x=remove_last_rows_transformer.transform(split_data[1]),
+                      test_x = remove_last_rows_transformer.transform(split_data[2]),
+                      train_y=remove_last_rows_transformer.transform(target_train),
+                      val_y = remove_last_rows_transformer.transform(target_val),
+                      test_y = remove_last_rows_transformer.transform(target_test))
     return dataset

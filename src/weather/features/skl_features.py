@@ -3,15 +3,13 @@ from dataclasses import dataclass
 from typing import List
 
 
-from sklearn.pipeline import Pipeline
-
-
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 
 
 from src.weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture, DateTransformer
 from src.weather.features.dataframe_transformer import SimpleCustomPipeline,TransformerToDataFrame, OneHotEncoderDataFrame, DataFrameColumnTransformer
+from src.weather.data.data_transformers import TargetChoice
 
 @dataclass
 class FeatureNames:
@@ -44,7 +42,7 @@ class FeatureNames:
 
 
 
-def make_input_transformer(feature_names:FeatureNames):
+def make_input_transformer(feature_names:FeatureNames, target_choice:TargetChoice):
 
     # For one-hot encoding of categorical columns
     categorical_transformer = SimpleCustomPipeline([

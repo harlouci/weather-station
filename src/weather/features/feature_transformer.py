@@ -74,7 +74,8 @@ class StepTransformer(BaseEstimator, TransformerMixin):
 
         # Compare current timestamp with the one 'steps' ahead
         future = data.shift(-self.hours)
-        return data[feature_name]
+
+        return future[feature_name]
 
 
 class WeatherConditionTransformer(BaseEstimator, TransformerMixin):
