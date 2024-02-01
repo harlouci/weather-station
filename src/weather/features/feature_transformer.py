@@ -1,7 +1,9 @@
-from typing import List
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from typing import List
+
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import LabelEncoder
+
 
 def format_date(data:pd.DataFrame)->pd.DataFrame:
     # Convert the 'Timestamp' column to datetime

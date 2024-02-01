@@ -1,13 +1,10 @@
 import joblib
-
 import pandas as pd
 
-from weather.data.prep_datasets import make_dataset
 from weather.data.data_transformers import make_target_transformer, TargetChoice, make_cleaning_transformer, make_remove_last_rows_transformer
+from weather.data.prep_datasets import make_dataset
 from weather.features.skl_features import FeatureNames, make_input_transformer
 from weather.models.models import models
-
-
 from weather.models.skl_train_models import print_accuracy_results, accuracy_evaluation
 
 

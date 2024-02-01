@@ -1,15 +1,12 @@
-
 from dataclasses import dataclass
 from typing import List
 
-
-from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
 
-
-from weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture, DateTransformer
-from weather.features.dataframe_transformer import SimpleCustomPipeline,TransformerToDataFrame, OneHotEncoderDataFrame, DataFrameColumnTransformer
 from weather.data.data_transformers import TargetChoice
+from weather.features.dataframe_transformer import SimpleCustomPipeline,TransformerToDataFrame, OneHotEncoderDataFrame, DataFrameColumnTransformer
+from weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture, DateTransformer
 
 @dataclass
 class FeatureNames:
