@@ -1,25 +1,26 @@
 import os
 import shutil
+from pathlib import Path
 
 
-def create_temporary_dir_if_not_exists(tmp_dir_path: os.PathLike = 'tmp') -> None:
+def create_temporary_dir_if_not_exists(tmp_dir_path: os.PathLike = "tmp") -> None:
     """creation of a temporary folder
 
     Args:
         tmp_dir_path (os.PathLike, optional): Path of the folder. Defaults to 'tmp'.
     """
-    if not os.path.exists(tmp_dir_path):
-        os.makedirs(tmp_dir_path)
+    if not Path.exists(tmp_dir_path):
+        Path.makedir(tmp_dir_path)
     return tmp_dir_path
 
 
-def clean_temporary_dir(tmp_dir_path: os.PathLike = 'tmp') -> None:
+def clean_temporary_dir(tmp_dir_path: os.PathLike = "tmp") -> None:
     """delete the temporary folder
 
     Args:
         tmp_dir_path (os.PathLike, optional): Path of the folder. Defaults to 'tmp'.
     """
-    if os.path.exists(tmp_dir_path):
+    if Path.exists(tmp_dir_path):
         shutil.rmtree(tmp_dir_path)
 
 

@@ -1,19 +1,19 @@
-import pandas as pd
 from typing import List
 
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
 
 
 def format_date(data:pd.DataFrame)->pd.DataFrame:
     # Convert the 'Timestamp' column to datetime
-    data['Timestamp'] = pd.to_datetime(data['Timestamp'], utc=True)
+    data["Timestamp"] = pd.to_datetime(data["Timestamp"], utc=True)
 
     # Extracting the relevant components directly from the datetime object
-    data["Year"] = data['Timestamp'].dt.year
-    data["Month"] = data['Timestamp'].dt.month
-    data["Day"] = data['Timestamp'].dt.day
-    data["Hour"] = data['Timestamp'].dt.hour  # Extracting just the hour
+    data["Year"] = data["Timestamp"].dt.year
+    data["Month"] = data["Timestamp"].dt.month
+    data["Day"] = data["Timestamp"].dt.day
+    data["Hour"] = data["Timestamp"].dt.hour  # Extracting just the hour
 
     return data
 
@@ -22,21 +22,23 @@ class DateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
 
-    def fit(self, X:pd.DataFrame, y=None)->None:
+    def fit(self, x:pd.DataFrame, y=None)->None:
         # This transformer does not need to learn anything from the data,
         # so the fit method just returns self.
-        self.column_names = X.columns.tolist() + ["Year", "Month", "Day", "Hour"]
+        self.column_names = x.columns.tolist() + ["Year", "Month", "Day", "Hour"]
         return self
 
-    def transform(self, X:pd.DataFrame)->pd.DataFrame:
-        data = X.copy()
-        # Check if X is a DataFrame
+    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+        data = x.copy()
+        # Check if x is a DataFrame
         if not isinstance(data, pd.DataFrame):
-            raise TypeError("Input must be a pandas DataFrame")
+            msg = "Input must be a pandas DataFrame"
+            raise TypeError(msg)
 
         # Ensure 'Timestamp' column is present
-        if 'Timestamp' not in data.columns:
-            raise ValueError("DataFrame must contain 'Timestamp' column for DateTransformer")
+        if "Timestamp" not in data.columns:
+            msg = "DataFrame must contain 'Timestamp' column for DateTransformer"
+            raise ValueError(msg)
 
         # Convert 'Timestamp' to datetime and extract components
         data = format_date(data)
@@ -52,24 +54,26 @@ class StepTransformer(BaseEstimator, TransformerMixin):
         self.hours = hours
         self.feature_name = feature_name
 
-    def fit(self, X:pd.DataFrame, y=None)->'StepTransformer':
+    def fit(self, x:pd.DataFrame, y=None)->"StepTransformer":
         # This transformer does not need to learn anything from the data,
         # so the fit method just returns self.
         return self
 
-    def transform(self, X:pd.DataFrame)->pd.DataFrame:
-        data = X.copy()
-        # Check if X is a DataFrame
+    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+        data = x.copy()
+        # Check if x is a DataFrame
         if not isinstance(data, pd.DataFrame):
-            raise TypeError("Input must be a pandas DataFrame")
+            msg = "Input must be a pandas DataFrame"
+            raise TypeError(msg)
 
-        time_stamp_name = 'Timestamp'
+        time_stamp_name = "Timestamp"
         feature_name = self.feature_name
 
         # Ensure 'Timestamp' column is present
 
         if time_stamp_name not in data.columns:
-            raise ValueError(f"DataFrame must contain {time_stamp_name} column for StepTransformer")
+            msg = f"DataFrame must contain {time_stamp_name} column for StepTransformer"
+            raise ValueError(msg)
 
         # Convert 'Timestamp' to datetime if not already
         data[time_stamp_name] = pd.to_datetime(data[time_stamp_name], utc=True)
@@ -86,15 +90,17 @@ class WeatherConditionTransformer(BaseEstimator, TransformerMixin):
         self.feature_name = feature_name
         self.no_rain_definition = {"snow": "no_rain", "clear": "no_rain"}
 
-    def fit(self, X:pd.DataFrame, y=None)->'WeatherConditionTransformer':
-        data = X.copy()
-        # Check if X is a DataFrame
+    def fit(self, x:pd.DataFrame, y=None)->"WeatherConditionTransformer":
+        data = x.copy()
+        # Check if x is a DataFrame
         if not isinstance(data , pd.DataFrame):
-            raise TypeError("Input must be a pandas DataFrame")
+            msg = "Input must be a pandas DataFrame"
+            raise TypeError(msg)
 
         # Ensure 'Weather_conditions' column is present
         if self.feature_name not in data.columns:
-            raise ValueError(f"DataFrame must contain {self.feature_name} column")
+            msg = f"DataFrame must contain {self.feature_name} column"
+            raise ValueError(msg)
 
         # Fitting the LabelEncoder
         data[self.feature_name] = data[self.feature_name].ffill()
@@ -103,9 +109,9 @@ class WeatherConditionTransformer(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self, X:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x:pd.DataFrame)->pd.DataFrame:
         # Performing the transformation
-        data = X.copy()
+        data = x.copy()
         data[self.feature_name] = data[self.feature_name].ffill()
         data[self.feature_name] = data[self.feature_name].replace(self.no_rain_definition)
         encoded_weather = self.label_encoder.transform(data[self.feature_name])
@@ -119,12 +125,12 @@ class RemoveNaTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
 
-    def fit(self, X:pd.DataFrame=None, y=None)->'RemoveNaTransformer':
+    def fit(self, x:pd.DataFrame=None, y=None)->"RemoveNaTransformer":
         return self
 
-    def transform(self, X:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x:pd.DataFrame)->pd.DataFrame:
         # Performing the transformation
-        data = X.copy()
+        data = x.copy()
         data.dropna(inplace=True)
 
         return data
@@ -135,22 +141,24 @@ class RemoveNoFuture(BaseEstimator, TransformerMixin):
     def __init__(self, hours: int):
         self.hours = hours
 
-    def fit(self, X:pd.DataFrame, y=None):
+    def fit(self, x:pd.DataFrame, y=None):
         # This transformer does not need to learn anything from the data,
         # so the fit method just returns self.
         return self
 
-    def transform(self, X:pd.DataFrame)->pd.DataFrame:
-        data = X.copy()
-        # Check if X is a DataFrame
+    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+        data = x.copy()
+        # Check if x is a DataFrame
         if not isinstance(data, pd.DataFrame):
-            raise TypeError("Input must be a pandas DataFrame")
+            msg = "Input must be a pandas DataFrame"
+            raise TypeError(msg)
 
-        time_stamp_name = 'Timestamp'
+        time_stamp_name = "Timestamp"
 
         # Ensure 'Timestamp' column is present
         if time_stamp_name not in data.columns:
-            raise ValueError(f"DataFrame must contain {time_stamp_name} column")
+            msg = f"DataFrame must contain {time_stamp_name} column"
+            raise ValueError(msg)
 
         # Convert 'Timestamp' to datetime if not already
         data[time_stamp_name] = pd.to_datetime(data[time_stamp_name], utc=True)

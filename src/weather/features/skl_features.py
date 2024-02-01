@@ -3,10 +3,15 @@ from typing import List
 
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-
 from weather.data.data_transformers import TargetChoice
-from weather.features.dataframe_transformer import SimpleCustomPipeline,TransformerToDataFrame, OneHotEncoderDataFrame, DataFrameColumnTransformer
-from weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture, DateTransformer
+from weather.features.dataframe_transformer import (
+    DataFrameColumnTransformer,
+    OneHotEncoderDataFrame,
+    SimpleCustomPipeline,
+    TransformerToDataFrame,
+)
+from weather.features.feature_transformer import DateTransformer, WeatherConditionTransformer
+
 
 @dataclass
 class FeatureNames:
@@ -43,26 +48,26 @@ def make_input_transformer(feature_names:FeatureNames, target_choice:TargetChoic
 
     # For one-hot encoding of categorical columns
     categorical_transformer = SimpleCustomPipeline([
-        ('imputer', TransformerToDataFrame(SimpleImputer(strategy='most_frequent'))),  # Handle missing values if any
-        ('onehot', OneHotEncoderDataFrame(handle_unknown='ignore'))
+        ("imputer", TransformerToDataFrame(SimpleImputer(strategy="most_frequent"))),  # Handle missing values if any
+        ("onehot", OneHotEncoderDataFrame(handle_unknown="ignore"))
     ])
 
     # For scaling numerical columns
     numerical_transformer = SimpleCustomPipeline([
-        ('imputer', TransformerToDataFrame(SimpleImputer(strategy='mean'))),  # Handle missing values if any
-        ('scaler', TransformerToDataFrame(StandardScaler()))
+        ("imputer", TransformerToDataFrame(SimpleImputer(strategy="mean"))),  # Handle missing values if any
+        ("scaler", TransformerToDataFrame(StandardScaler()))
     ])
 
     merge_processor = DataFrameColumnTransformer(
         transformers=[
-            ('cat', categorical_transformer, feature_names.categorical),
-            ('num', numerical_transformer, feature_names.numerical),
+            ("cat", categorical_transformer, feature_names.categorical),
+            ("num", numerical_transformer, feature_names.numerical),
         ])
 
     input_transformer = SimpleCustomPipeline([
-        ('time', DateTransformer()),
-        ('weather', WeatherConditionTransformer('Weather_conditions')),
-        ('basic', merge_processor),
+        ("time", DateTransformer()),
+        ("weather", WeatherConditionTransformer("Weather_conditions")),
+        ("basic", merge_processor),
     ])
 
     return input_transformer

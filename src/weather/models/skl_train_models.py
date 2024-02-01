@@ -1,12 +1,10 @@
 import abc
-
 from typing import Dict, List
-
-from weather.data.prep_datasets import Dataset
 
 from prettytable import PrettyTable
 from sklearn.metrics import accuracy_score
 from sklearn.pipeline import Pipeline
+from weather.data.prep_datasets import Dataset
 
 
 def accuracy_evaluation(

@@ -2,11 +2,9 @@ import abc
 from dataclasses import dataclass
 from typing import Dict
 
-from weather.features.dataframe_transformer import SimpleCustomPipeline
-from weather.data.prep_datasets import Dataset
-
 from sklearn.metrics import accuracy_score
-
+from weather.data.prep_datasets import Dataset
+from weather.features.dataframe_transformer import SimpleCustomPipeline
 
 
 @dataclass

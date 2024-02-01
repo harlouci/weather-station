@@ -1,19 +1,17 @@
 import abc
+from pathlib import Path
 from typing import List
-import os
-import joblib
 
+import joblib
 import mlflow
 from mlflow.models import infer_signature
 from sklearn.metrics import RocCurveDisplay
-
 from weather.data.prep_datasets import Dataset
 from weather.features.dataframe_transformer import SimpleCustomPipeline
-from weather.mlflow.tracking import Experiment
-from weather.helpers.utils import create_temporary_dir_if_not_exists
-from weather.helpers.utils import clean_temporary_dir
-from weather.helpers.utils import camel_to_snake
+from weather.helpers.utils import camel_to_snake, clean_temporary_dir, create_temporary_dir_if_not_exists
 from weather.metrics.evaluate import accuracy_evaluation
+from weather.mlflow.tracking import Experiment
+
 
 class SKLModelWrapper(mlflow.pyfunc.PythonModel):
     """
@@ -31,7 +29,7 @@ class SKLModelWrapper(mlflow.pyfunc.PythonModel):
         - context: MLflow context containing the stored model artifacts.
         """
         import joblib
-        import src
+
         self.loaded_data_transformer = joblib.load(context.artifacts["feature_eng_path"])
         self.loaded_classifier = joblib.load(context.artifacts["model_path"])
 
@@ -73,8 +71,8 @@ def train_and_evaluate_with_tracking(
     # Create a temporary directory for storing artifacts
     tmp_dir = create_temporary_dir_if_not_exists()
     # Save the data transformer pipeline
-    tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
-    joblib.dump(data_transformer, tmp_fpath('feature_eng.joblib'))
+    def tmp_fpath(fpath): return Path(tmp_dir)/fpath
+    joblib.dump(data_transformer, tmp_fpath("feature_eng.joblib"))
     # Transform the data for training, validation, and test sets
     train_inputs = data_transformer.transform(data.train_x)
     valid_inputs = data_transformer.transform(data.val_x)
@@ -89,21 +87,21 @@ def train_and_evaluate_with_tracking(
             # Instantiate and train the classifier
             classifier_obj = classifier()
             classifier_obj.fit(train_inputs, data.train_y)
-            joblib.dump(classifier_obj, tmp_fpath('model.joblib'))
+            joblib.dump(classifier_obj, tmp_fpath("model.joblib"))
             # Evaluate accuracy on different datasets
             accuracy_dict = accuracy_evaluation(data_transformer, classifier_obj, data)
             # Track accuracy metrics
-            mlflow.log_metric("train_accuracy", accuracy_dict['train'])
-            mlflow.log_metric("valid_accuracy", accuracy_dict['val'])
-            mlflow.log_metric("test_accuracy", accuracy_dict['test'])
+            mlflow.log_metric("train_accuracy", accuracy_dict["train"])
+            mlflow.log_metric("valid_accuracy", accuracy_dict["val"])
+            mlflow.log_metric("test_accuracy", accuracy_dict["test"])
             # Generate an example input and a model signature
             sample = data.train_x.sample(3)
             signature = infer_signature(data.train_x,
                                         classifier_obj.predict(train_inputs))
             # Log the trained model as an MLflow artifact
-            artifacts = {"feature_eng_path": tmp_fpath('feature_eng.joblib'),
-                         "model_path": tmp_fpath('model.joblib')}
-            mlflow_pyfunc_model_path = 'classifier'
+            artifacts = {"feature_eng_path": tmp_fpath("feature_eng.joblib"),
+                         "model_path": tmp_fpath("model.joblib")}
+            mlflow_pyfunc_model_path = "classifier"
             mlflow.pyfunc.log_model(
                 artifact_path=mlflow_pyfunc_model_path,
                 python_model=SKLModelWrapper(),
@@ -117,9 +115,9 @@ def train_and_evaluate_with_tracking(
             # Track ROC curve plots for validation and test sets
             display = RocCurveDisplay.from_predictions(data.val_y.values,
                                         classifier_obj.predict_proba(valid_inputs)[:,1])
-            mlflow.log_figure(display.figure_, 'plots/ValidRocCurveDisplay.png')
+            mlflow.log_figure(display.figure_, "plots/ValidRocCurveDisplay.png")
             display = RocCurveDisplay.from_predictions(data.test_y.values,
                                         classifier_obj.predict_proba(test_inputs)[:,1])
-            mlflow.log_figure(display.figure_, 'plots/TestRocCurveDisplay.png')
+            mlflow.log_figure(display.figure_, "plots/TestRocCurveDisplay.png")
     # Clean up temporary directory
     clean_temporary_dir()
