@@ -56,20 +56,23 @@ select = [
 # TODO: Consider changing this, I like 120
 line-length = 120
 ignore = [
-    "E501", # line-length
     # TODO: You should consider turning them on
+    "C416", # Ignore dict <-> comprehension
     "D100",
     "D101",
     "D103",
-    "PD015", # Ignore pd.merge
-    "C416", # Ignore dict <-> comprehension
+    "E501", # line-length
     "E721", # We are old enough to know when to print or not
-    "T201",
-    "RUF005",
+    "ISC001", # May caue conflicts 
+    "PD002", # Ignore "`inplace=True` should be avoided;  it has inconsistent behavior"
+    "PD015", # Ignore pd.merge
+    "PD901", # Ignore "Avoid using the generic variable name `df` for DataFrames"
     "RET504", # This should be re-enabled at some point
     "RET505", # This should be re-enabled at some point
-    "S113", # This should be re-enabled at some point
+    "RUF005",
     "S101", # For tests, there are other options to achieve the same result, but wtv
+    "S113", # This should be re-enabled at some point
+    "T201",
 ]
 
 [pytest]
