@@ -4,8 +4,8 @@ from sklearn.pipeline import Pipeline
 
 
 
-from src.weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture
-from src.weather.features.dataframe_transformer import RemoveLastNRowsTransformer
+from weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture
+from weather.features.dataframe_transformer import RemoveLastNRowsTransformer
 
 
 @dataclass

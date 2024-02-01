@@ -7,9 +7,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 
 
-from src.weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture, DateTransformer
-from src.weather.features.dataframe_transformer import SimpleCustomPipeline,TransformerToDataFrame, OneHotEncoderDataFrame, DataFrameColumnTransformer
-from src.weather.data.data_transformers import TargetChoice
+from weather.features.feature_transformer import WeatherConditionTransformer, StepTransformer, RemoveNaTransformer, RemoveNoFuture, DateTransformer
+from weather.features.dataframe_transformer import SimpleCustomPipeline,TransformerToDataFrame, OneHotEncoderDataFrame, DataFrameColumnTransformer
+from weather.data.data_transformers import TargetChoice
 
 @dataclass
 class FeatureNames:

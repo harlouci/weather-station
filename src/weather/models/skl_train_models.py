@@ -2,7 +2,7 @@ import abc
 
 from typing import Dict, List
 
-from src.weather.data.prep_datasets import Dataset
+from weather.data.prep_datasets import Dataset
 
 from prettytable import PrettyTable
 from sklearn.metrics import accuracy_score

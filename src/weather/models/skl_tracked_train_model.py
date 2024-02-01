@@ -7,13 +7,13 @@ import mlflow
 from mlflow.models import infer_signature
 from sklearn.metrics import RocCurveDisplay
 
-from src.weather.data.prep_datasets import Dataset
-from src.weather.features.dataframe_transformer import SimpleCustomPipeline
-from src.weather.mlflow.tracking import Experiment
-from src.weather.helpers.utils import create_temporary_dir_if_not_exists
-from src.weather.helpers.utils import clean_temporary_dir
-from src.weather.helpers.utils import camel_to_snake
-from src.weather.metrics.evaluate import accuracy_evaluation
+from weather.data.prep_datasets import Dataset
+from weather.features.dataframe_transformer import SimpleCustomPipeline
+from weather.mlflow.tracking import Experiment
+from weather.helpers.utils import create_temporary_dir_if_not_exists
+from weather.helpers.utils import clean_temporary_dir
+from weather.helpers.utils import camel_to_snake
+from weather.metrics.evaluate import accuracy_evaluation
 
 class SKLModelWrapper(mlflow.pyfunc.PythonModel):
     """
