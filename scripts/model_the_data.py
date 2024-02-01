@@ -2,17 +2,16 @@ import joblib
 
 import pandas as pd
 
-
-from src.weather.data.prep_datasets import make_dataset
-from src.weather.data.data_transformers import make_target_transformer, TargetChoice, make_cleaning_transformer, make_remove_last_rows_transformer
-from src.weather.features.skl_features import FeatureNames, make_input_transformer
-from src.weather.models.models import models
-
-
-from src.weather.models.skl_train_models import print_accuracy_results, accuracy_evaluation
+from weather.data.prep_datasets import make_dataset
+from weather.data.data_transformers import make_target_transformer, TargetChoice, make_cleaning_transformer, make_remove_last_rows_transformer
+from weather.features.skl_features import FeatureNames, make_input_transformer
+from weather.models.models import models
 
 
-df = pd.read_csv('../explore/weather_dataset_raw.csv')
+from weather.models.skl_train_models import print_accuracy_results, accuracy_evaluation
+
+
+df = pd.read_csv('../data/weather_dataset_raw.csv')
 
 target_choice = TargetChoice('Weather_conditions', 4)
 feature_names = FeatureNames(numerical=['Temperature_C', 'Humidity', 'Wind_speed_kmph', 'Wind_bearing_degrees', 'Visibility_km', 'Pressure_millibars'],
