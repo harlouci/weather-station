@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+
+
+[project]
+name = "weather"
+version = "2024.02"
+dynamic = [
+    "dependencies",
+    "optional-dependencies",
+]
+
+[tool.black]
+profile = "google"
+# TODO: Consider changing this, I like 120
+line-length = 120
+
+[tool.ruff]
+# TODO: Eventually lint our entire repository with this enabled
+# Allows to consider bank_marketing (our package) as first-party package
+# resulting in correctly detected import [order].
+# src = ["src"]
+
+# We select almost everything by default.
+# You are expected to add/remove what you find relevant
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "S",
+    "B",
+    "A",
+    "C4",
+    "DTZ",
+    "EM",
+    "EXE",
+    "ISC",
+    "G",
+    "PIE",
+    "T20",
+    "PYI",
+    "PT",
+    "Q",
+    "RET",
+    "SIM",
+    "PTH",
+    "PD",
+    "NPY",
+    "TRY",
+    "PERF",
+    "RUF",
+]
+# TODO: Consider changing this, I like 120
+line-length = 120
+ignore = [
+    "E501", # line-length
+    # TODO: You should consider turning them on
+    "D100",
+    "D101",
+    "D103",
+    "PD015", # Ignore pd.merge
+    "C416", # Ignore dict <-> comprehension
+    "E721", # We are old enough to know when to print or not
+    "T201",
+    "RUF005",
+    "RET504", # This should be re-enabled at some point
+    "RET505", # This should be re-enabled at some point
+    "S113", # This should be re-enabled at some point
+    "S101", # For tests, there are other options to achieve the same result, but wtv
+]
+
+[pytest]
+log_cli = 1

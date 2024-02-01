@@ -7,9 +7,11 @@ It defines package metadata and other configuration relevant to the package.
 
 from setuptools import setup
 
-setup(
+setup()
+
+""" setup(
     name="weather",
     version="0.0.1",
     description="code for predicting weather",
     packages=["src"],
-)
+) """
