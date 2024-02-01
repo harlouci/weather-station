@@ -1,5 +1,6 @@
 """
-This script is to make transforms so that it's return dataframe so that we keep the columns names for easier interpretability and debuging
+This script is to make transforms so that it's return dataframe so that we keep the columns names
+for easier interpretability and debuging
 """
 
 from typing import List
