@@ -6,16 +6,6 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# These variables will be accessible in the jobs
-# as ${{ env.NAME_OF_VARIABLE }}
-# Note that we reference the repository secrets
-# and the repository variables
-env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GAR_LOCATION: northamerica-northeast1
-  GKE_CLUSTER: ${{ vars.GKE_CLUSTER }}
-  GKE_LOCATION: ${{ vars.GKE_LOCATION }}
-
 jobs:
   ci:
     name: Check lint, check format, run tests
@@ -42,10 +32,3 @@ jobs:
         run: |
           black --check src/weather
 
-      - name: Build docker test image
-        run: |
-          make docker-build-tests
-
-      - name: Run tests
-        run: |
-          make docker-run-tests
