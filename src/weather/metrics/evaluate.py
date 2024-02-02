@@ -15,17 +15,14 @@ class Score:
     valid: float
     test: float
 
+
 def score_evaluation(score, classifier: abc.ABCMeta, data: Dataset, decimals: int = 3):
     score_name = score.__name__
 
     train_score = score(data.train_y.values, classifier.predict(data.train_x))
     val_score = score(data.val_y.values, classifier.predict(data.val_x))
     test_score = score(data.test_y.values, classifier.predict(data.test_x))
-    return Score(score_name,
-                         round(train_score, decimals),
-                         round(val_score),
-                         round(test_score))
-
+    return Score(score_name, round(train_score, decimals), round(val_score), round(test_score))
 
 
 def accuracy_evaluation(

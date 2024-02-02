@@ -50,10 +50,12 @@ class SKLModelWrapper(mlflow.pyfunc.PythonModel):
 
 
 def train_and_evaluate_with_tracking(
-        data: Dataset, data_transformer: SimpleCustomPipeline,
-        classifers_list: List[abc.ABCMeta],
-        experiment:Experiment,
-        ds_info:dict) -> None:
+    data: Dataset,
+    data_transformer: SimpleCustomPipeline,
+    classifers_list: List[abc.ABCMeta],
+    experiment: Experiment,
+    ds_info: dict,
+) -> None:
     """
     Trains each classifier from the list on the training data and evaluates on all splits,
     while tracking metrics and artifacts using MLflow.
@@ -70,8 +72,11 @@ def train_and_evaluate_with_tracking(
     experiment_id = mlflow.set_experiment(experiment.name).experiment_id
     # Create a temporary directory for storing artifacts
     tmp_dir = create_temporary_dir_if_not_exists()
+
     # Save the data transformer pipeline
-    def tmp_fpath(fpath): return Path(tmp_dir)/fpath
+    def tmp_fpath(fpath):
+        return Path(tmp_dir) / fpath
+
     joblib.dump(data_transformer, tmp_fpath("feature_eng.joblib"))
     # Transform the data for training, validation, and test sets
     train_inputs = data_transformer.transform(data.train_x)
@@ -81,8 +86,7 @@ def train_and_evaluate_with_tracking(
     for classifier in classifers_list:
         # Set up run-specific details
         classifier_shortname = camel_to_snake(classifier.__name__)
-        with mlflow.start_run(experiment_id=experiment_id,
-                              run_name=f"run_{classifier_shortname}"):
+        with mlflow.start_run(experiment_id=experiment_id, run_name=f"run_{classifier_shortname}"):
             mlflow.set_tag("sklearn_model", classifier_shortname)
             # Instantiate and train the classifier
             classifier_obj = classifier()
@@ -96,11 +100,9 @@ def train_and_evaluate_with_tracking(
             mlflow.log_metric("test_accuracy", accuracy_dict["test"])
             # Generate an example input and a model signature
             sample = data.train_x.sample(3)
-            signature = infer_signature(data.train_x,
-                                        classifier_obj.predict(train_inputs))
+            signature = infer_signature(data.train_x, classifier_obj.predict(train_inputs))
             # Log the trained model as an MLflow artifact
-            artifacts = {"feature_eng_path": tmp_fpath("feature_eng.joblib"),
-                         "model_path": tmp_fpath("model.joblib")}
+            artifacts = {"feature_eng_path": tmp_fpath("feature_eng.joblib"), "model_path": tmp_fpath("model.joblib")}
             mlflow_pyfunc_model_path = "classifier"
             mlflow.pyfunc.log_model(
                 artifact_path=mlflow_pyfunc_model_path,
@@ -113,11 +115,13 @@ def train_and_evaluate_with_tracking(
             # Log the ds_info as a YAML file under the run's root artifact directory
             mlflow.log_dict(ds_info, "data.yml")
             # Track ROC curve plots for validation and test sets
-            display = RocCurveDisplay.from_predictions(data.val_y.values,
-                                        classifier_obj.predict_proba(valid_inputs)[:,1])
+            display = RocCurveDisplay.from_predictions(
+                data.val_y.values, classifier_obj.predict_proba(valid_inputs)[:, 1]
+            )
             mlflow.log_figure(display.figure_, "plots/ValidRocCurveDisplay.png")
-            display = RocCurveDisplay.from_predictions(data.test_y.values,
-                                        classifier_obj.predict_proba(test_inputs)[:,1])
+            display = RocCurveDisplay.from_predictions(
+                data.test_y.values, classifier_obj.predict_proba(test_inputs)[:, 1]
+            )
             mlflow.log_figure(display.figure_, "plots/TestRocCurveDisplay.png")
     # Clean up temporary directory
     clean_temporary_dir()

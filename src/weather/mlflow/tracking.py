@@ -12,5 +12,6 @@ class Experiment:
     name : str
         the name of the experiment
     """
-    tracking_server_uri:str
-    name:str
+
+    tracking_server_uri: str
+    name: str

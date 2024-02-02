@@ -5,7 +5,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
 
 
-def format_date(data:pd.DataFrame)->pd.DataFrame:
+def format_date(data: pd.DataFrame) -> pd.DataFrame:
     # Convert the 'Timestamp' column to datetime
     data["Timestamp"] = pd.to_datetime(data["Timestamp"], utc=True)
 
@@ -22,13 +22,13 @@ class DateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
 
-    def fit(self, x:pd.DataFrame, y=None)->None:
+    def fit(self, x: pd.DataFrame, y=None) -> None:
         # This transformer does not need to learn anything from the data,
         # so the fit method just returns self.
         self.column_names = x.columns.tolist() + ["Year", "Month", "Day", "Hour"]
         return self
 
-    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
         # Check if x is a DataFrame
         if not isinstance(data, pd.DataFrame):
@@ -45,7 +45,7 @@ class DateTransformer(BaseEstimator, TransformerMixin):
 
         return data
 
-    def get_feature_names_out(self)->List[str]:
+    def get_feature_names_out(self) -> List[str]:
         return self.column_names
 
 
@@ -54,12 +54,12 @@ class StepTransformer(BaseEstimator, TransformerMixin):
         self.hours = hours
         self.feature_name = feature_name
 
-    def fit(self, x:pd.DataFrame, y=None)->"StepTransformer":
+    def fit(self, x: pd.DataFrame, y=None) -> "StepTransformer":
         # This transformer does not need to learn anything from the data,
         # so the fit method just returns self.
         return self
 
-    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
         # Check if x is a DataFrame
         if not isinstance(data, pd.DataFrame):
@@ -90,10 +90,10 @@ class WeatherConditionTransformer(BaseEstimator, TransformerMixin):
         self.feature_name = feature_name
         self.no_rain_definition = {"snow": "no_rain", "clear": "no_rain"}
 
-    def fit(self, x:pd.DataFrame, y=None)->"WeatherConditionTransformer":
+    def fit(self, x: pd.DataFrame, y=None) -> "WeatherConditionTransformer":
         data = x.copy()
         # Check if x is a DataFrame
-        if not isinstance(data , pd.DataFrame):
+        if not isinstance(data, pd.DataFrame):
             msg = "Input must be a pandas DataFrame"
             raise TypeError(msg)
 
@@ -109,7 +109,7 @@ class WeatherConditionTransformer(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         # Performing the transformation
         data = x.copy()
         data[self.feature_name] = data[self.feature_name].ffill()
@@ -125,10 +125,10 @@ class RemoveNaTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
 
-    def fit(self, x:pd.DataFrame=None, y=None)->"RemoveNaTransformer":
+    def fit(self, x: pd.DataFrame = None, y=None) -> "RemoveNaTransformer":
         return self
 
-    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         # Performing the transformation
         data = x.copy()
         data.dropna(inplace=True)
@@ -141,12 +141,12 @@ class RemoveNoFuture(BaseEstimator, TransformerMixin):
     def __init__(self, hours: int):
         self.hours = hours
 
-    def fit(self, x:pd.DataFrame, y=None):
+    def fit(self, x: pd.DataFrame, y=None):
         # This transformer does not need to learn anything from the data,
         # so the fit method just returns self.
         return self
 
-    def transform(self, x:pd.DataFrame)->pd.DataFrame:
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
         # Check if x is a DataFrame
         if not isinstance(data, pd.DataFrame):

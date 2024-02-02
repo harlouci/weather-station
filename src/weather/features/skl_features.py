@@ -43,33 +43,40 @@ class FeatureNames:
         return self.numerical + self.categorical
 
 
-
-def make_input_transformer(feature_names:FeatureNames, target_choice:TargetChoice):
+def make_input_transformer(feature_names: FeatureNames, target_choice: TargetChoice):
 
     # For one-hot encoding of categorical columns
-    categorical_transformer = SimpleCustomPipeline([
-        ("imputer", TransformerToDataFrame(SimpleImputer(strategy="most_frequent"))),  # Handle missing values if any
-        ("onehot", OneHotEncoderDataFrame(handle_unknown="ignore"))
-    ])
+    categorical_transformer = SimpleCustomPipeline(
+        [
+            (
+                "imputer",
+                TransformerToDataFrame(SimpleImputer(strategy="most_frequent")),
+            ),  # Handle missing values if any
+            ("onehot", OneHotEncoderDataFrame(handle_unknown="ignore")),
+        ]
+    )
 
     # For scaling numerical columns
-    numerical_transformer = SimpleCustomPipeline([
-        ("imputer", TransformerToDataFrame(SimpleImputer(strategy="mean"))),  # Handle missing values if any
-        ("scaler", TransformerToDataFrame(StandardScaler()))
-    ])
+    numerical_transformer = SimpleCustomPipeline(
+        [
+            ("imputer", TransformerToDataFrame(SimpleImputer(strategy="mean"))),  # Handle missing values if any
+            ("scaler", TransformerToDataFrame(StandardScaler())),
+        ]
+    )
 
     merge_processor = DataFrameColumnTransformer(
         transformers=[
             ("cat", categorical_transformer, feature_names.categorical),
             ("num", numerical_transformer, feature_names.numerical),
-        ])
+        ]
+    )
 
-    input_transformer = SimpleCustomPipeline([
-        ("time", DateTransformer()),
-        ("weather", WeatherConditionTransformer("Weather_conditions")),
-        ("basic", merge_processor),
-    ])
+    input_transformer = SimpleCustomPipeline(
+        [
+            ("time", DateTransformer()),
+            ("weather", WeatherConditionTransformer("Weather_conditions")),
+            ("basic", merge_processor),
+        ]
+    )
 
     return input_transformer
-
-

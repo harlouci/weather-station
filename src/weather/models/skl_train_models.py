@@ -60,7 +60,6 @@ def train_and_evaluate(
     return results
 
 
-
 def print_accuracy_results(results: List[Dict[str, str | float]] | Dict[str, str | float]) -> None:
     """Print the accuracy scoring results as pretty tables
 
