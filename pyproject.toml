@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+
+
+[project]
+name = "weather"
+version = "2024.02"
+dynamic = [
+    "dependencies",
+    "optional-dependencies",
+]
+
+[tool.black]
+profile = "google"
+# TODO: Consider changing this, I like 120
+line-length = 120
+
+[tool.ruff]
+# TODO: Eventually lint our entire repository with this enabled
+# Allows to consider bank_marketing (our package) as first-party package
+# resulting in correctly detected import [order].
+# src = ["src"]
+
+# We select almost everything by default.
+# You are expected to add/remove what you find relevant
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "S",
+    "B",
+    "A",
+    "C4",
+    "DTZ",
+    "EM",
+    "EXE",
+    "ISC",
+    "G",
+    "PIE",
+    "T20",
+    "PYI",
+    "PT",
+    "Q",
+    "RET",
+    "SIM",
+    "PTH",
+    "PD",
+    "NPY",
+    "TRY",
+    "PERF",
+    "RUF",
+]
+# TODO: Consider changing this, I like 120
+line-length = 120
+ignore = [
+    # TODO: You should consider turning them on
+    "C416", # Ignore dict <-> comprehension
+    "D100",
+    "D101",
+    "D103",
+    "E501", # line-length
+    "E721", # We are old enough to know when to print or not
+    "ISC001", # May caue conflicts 
+    "PD002", # Ignore "`inplace=True` should be avoided;  it has inconsistent behavior"
+    "PD015", # Ignore pd.merge
+    "PD901", # Ignore "Avoid using the generic variable name `df` for DataFrames"
+    "RET504", # This should be re-enabled at some point
+    "RET505", # This should be re-enabled at some point
+    "RUF005",
+    "S101", # For tests, there are other options to achieve the same result, but wtv
+    "S113", # This should be re-enabled at some point
+    "T201",
+]
+
+[pytest]
+log_cli = 1

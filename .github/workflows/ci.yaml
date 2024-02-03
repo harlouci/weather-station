@@ -1,0 +1,34 @@
+on:
+  push:
+    branches:
+      - main
+      - add_cleaning
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: Check lint, check format, run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # TODO: Use pregenerated requirements
+      - name: Set up style and lint generate-requirements
+        run: |
+          pip install '.[style]'
+
+      # TODO: Replace next 2 with commands
+      - name: Lint
+        run: |
+          ruff check src/weather 
+      - name: Format check
+        run: |
+          black --check src/weather
+
