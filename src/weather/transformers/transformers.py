@@ -176,10 +176,10 @@ class OneHotEncoderDataFrame(BaseEstimator, TransformerMixin):
 
 def extract_year_month_day_hour_from_data_index(data: pd.DataFrame) -> pd.DataFrame:
     assert isinstance(data.index, pd.core.indexes.datetimes.DatetimeIndex), "Wrong dataframe index type."
-    data["Year"] = pd.Series(data.index).dt.year.values
-    data["Month"] = pd.Series(data.index).dt.month.values
-    data["Day"] = pd.Series(data.index).dt.day.values
-    data["Hour"] = pd.Series(data.index).dt.hour.values
+    data["Year"] = pd.Series(data.index).dt.year.to_numpy()
+    data["Month"] = pd.Series(data.index).dt.month.to_numpy()
+    data["Day"] = pd.Series(data.index).dt.day.to_numpy()
+    data["Hour"] = pd.Series(data.index).dt.hour.to_numpy()
     return data
 
 
