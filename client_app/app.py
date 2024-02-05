@@ -1,0 +1,54 @@
+from fastapi import FastAPI
+from data import Item, json_to_dataframe_col
+import pandas as pd
+import joblib
+import os
+from pathlib import Path
+
+from twilio.rest import Client
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv("api.env")
+
+app = FastAPI()
+
+model_folder = Path(__file__).resolve().parent.parent / "model"
+
+model = joblib.load(model_folder / 'model.pkl')
+input_transformer = joblib.load(model_folder / 'feature_eng_pipeline.pkl')
+
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+twilio_phone = os.getenv('TWILIO_PHONE')
+client = Client(account_sid, auth_token)
+
+
+file_path = 'phones.txt'
+
+# Open the file and read all lines
+with open(file_path, 'r') as file:
+    phones = file.readlines()
+
+# Create a POST endpoint to receive JSON data and return a response
+@app.get("/predict/")
+async def predict(item: Item):
+    df = pd.DataFrame([item.dict()])
+    df.rename(columns=json_to_dataframe_col, inplace=True)
+    y = model.predict(input_transformer.transform(df))
+    if y[0]==1:
+        for phone in phones:
+            message = client.messages.create(
+                from_=twilio_phone,
+                body="it's will rain in 4 hours!",
+                to=phone
+            )
+        print("It's will rain!")
+        return {"prediction": "rain"}
+    else:
+        return {"prediction": "no rain"}
+
+
+
+
+
