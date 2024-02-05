@@ -1,30 +1,28 @@
 from dataclasses import dataclass
 from typing import List
 
-from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
+from sklearn.preprocessing import StandardScaler
 from weather.transformers.transformer_utilities import (
     DataFrameColumnTransformer,
     SimpleCustomPipeline,
     TransformerToDataFrame,
 )
 from weather.transformers.transformers import (
-    RenameColumnsTransformer,
-    FillInitialRowsWithBfillTransformer,
-    ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer,
-    RemoveTimestampDuplicatesTransformer,
-    TimestampAsIndexTransformer,
-    TimestampOrderedTransformer,
     AddEmptyRowsAtMissingTimestampsTransformer,
-    CreateShiftedWeatherSeriesTransformer,
-    WeatherTransformer,
-    RemoveHorizonLessRowsTransformer,
-    ImputeOutliersTransformer,
     AddFromIndexTheColumnsYearMonthDayHourTransformer,
+    ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer,
+    CreateShiftedWeatherSeriesTransformer,
+    FillInitialRowsWithBfillTransformer,
+    ImputeOutliersTransformer,
     NaNsImputationTransformer,
     OneHotEncoderDataFrame,
+    RemoveHorizonLessRowsTransformer,
+    RemoveTimestampDuplicatesTransformer,
+    RenameColumnsTransformer,
+    TimestampAsIndexTransformer,
+    TimestampOrderedTransformer,
+    WeatherTransformer,
 )
 
 
@@ -44,6 +42,7 @@ class FeatureNames:
     features()
         Returns the list of all features
     """
+
     numerical: List[str]
     categorical: List[str]
 
@@ -67,6 +66,7 @@ class TargetChoice:
     hours : int
         number of hours in the future we want to predict
     """
+
     input_name: str
     hours: int
 
@@ -79,7 +79,7 @@ def make_dataset_transformer(target_choice: TargetChoice, oldnames_newnames_dict
             ("timestamp_as_datetime_at_utc_timezone", ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer()),
             ("timestamp_ordered", TimestampOrderedTransformer()),
             ("remove_timestamp_duplicates", RemoveTimestampDuplicatesTransformer()),
-            ("timestamp_as_index", TimestampAsIndexTransformer()), 
+            ("timestamp_as_index", TimestampAsIndexTransformer()),
             ("add_empty_rows_at_missing_timestamps", AddEmptyRowsAtMissingTimestampsTransformer()),
         ]
     )
@@ -88,9 +88,8 @@ def make_dataset_transformer(target_choice: TargetChoice, oldnames_newnames_dict
 
 def make_predictors_feature_engineering_transformer(feature_names: FeatureNames, target_choice: TargetChoice):
 
-
     # Impute NaNs for all columns with ffill #
-    nans_imputation_transformer = NaNsImputationTransformer() 
+    nans_imputation_transformer = NaNsImputationTransformer()
 
     # Impute outliers (values 0 in "Pressure" and "Humidity")
     outliers_imputation_transformer = Pipeline(
@@ -99,9 +98,9 @@ def make_predictors_feature_engineering_transformer(feature_names: FeatureNames,
             ("inpute_pressure_outliers", ImputeOutliersTransformer("Pressure")),
         ]
     )
-    
+
     # For one-hot encoding of categorical columns
-    categorical_transformer = SimpleCustomPipeline(   # Problem with Pipeline alone because of ColumnTransformer, which is used in DataFramColumnTransformer
+    categorical_transformer = SimpleCustomPipeline(  # Problem with Pipeline alone because of ColumnTransformer, which is used in DataFramColumnTransformer
         [
             ("onehot", OneHotEncoderDataFrame(handle_unknown="ignore")),
         ]

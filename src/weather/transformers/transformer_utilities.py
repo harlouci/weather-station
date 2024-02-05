@@ -9,12 +9,12 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
 
 
 class TransformerToDataFrame(BaseEstimator, TransformerMixin):
     """As some transformers, e.g. StandardScaler(), return a np.array, wrapped
     with this transformer they return a dataframe, with the same column names."""
+
     def __init__(self, base_transformer):
         self.base_transformer = base_transformer
         self.column_names = None  # Initialize column names as None
@@ -40,6 +40,7 @@ class DataFrameColumnTransformer(ColumnTransformer):
     """As the method `transform()` of ColumnTransformer() returns a np.array, wrapped
     with  this transformer it returns a dataframe, with the same column names.
     """
+
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         # Transform the data using the original ColumnTransformer
         x_array = super().transform(x)
@@ -63,6 +64,7 @@ class DataFrameColumnTransformer(ColumnTransformer):
 
 class SimpleCustomPipeline(Pipeline):
     """Wraps the class Pipeline() to add it the method `get_feature_names_out`."""
+
     def get_feature_names_out(self, input_features=None):
         """Get output feature names for transformation."""
         # Check if the pipeline has a final step that is a transformer

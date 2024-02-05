@@ -1,10 +1,10 @@
 """Includes functions to prepare datasets for ML applications."""
+
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 
 @dataclass
@@ -26,6 +26,7 @@ class Dataset:
     test_y : Pandas Series
         the series of output label w.r.t testing split
     """
+
     train_x: pd.DataFrame
     val_x: pd.DataFrame
     test_x: pd.DataFrame
@@ -59,7 +60,7 @@ class Dataset:
         self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=";", index=False)
 
 
-def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)) :
+def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
     """Split the dataframe in train/val/test datasets without shuffling the rows.
     The train, val, test datasets are chronologically ordered from past to present.
     """
@@ -74,7 +75,7 @@ def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)) :
 
 
 def transform_dataset_and_create_target(
-    data: pd.DataFrame,    
+    data: pd.DataFrame,
     dataset_transformer,
     target_creation_transformer,
 ):
@@ -92,18 +93,15 @@ def prepare_binary_classification_tabular_data(
     splitted_target: Tuple[pd.Series] = split_data(created_target, split_size)
 
     dataset = Dataset(
-        train_x = splitted_data[0],
-        val_x = splitted_data[1],
-        test_x = splitted_data[2],
-        train_y = splitted_target[0], 
-        val_y = splitted_target[1], 
-        test_y = splitted_target[2], 
+        train_x=splitted_data[0],
+        val_x=splitted_data[1],
+        test_x=splitted_data[2],
+        train_y=splitted_target[0],
+        val_y=splitted_target[1],
+        test_y=splitted_target[2],
     )
     return dataset
 
 
-def remove_horizonless_rows(
-    dataset,
-    remove_horizonless_rows_transformer
-):
+def remove_horizonless_rows(dataset, remove_horizonless_rows_transformer):
     return dataset.apply_transformer(remove_horizonless_rows_transformer)

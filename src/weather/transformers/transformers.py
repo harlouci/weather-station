@@ -3,13 +3,14 @@ from typing import List
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import LabelEncoder,  OneHotEncoder
-
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # Transformers for "dataset_transformer"
 
+
 class RenameColumnsTransformer(BaseEstimator, TransformerMixin):
     """Rename the columns of the dataframe with nicely formatted names, e.g. remove units."""
+
     def __init__(self, oldnames_newnames_dict):
         self.oldnames_newnames_dict = oldnames_newnames_dict
 
@@ -24,6 +25,7 @@ class RenameColumnsTransformer(BaseEstimator, TransformerMixin):
 
 class FillInitialRowsWithBfillTransformer(BaseEstimator, TransformerMixin):
     """From the dataframe, remove all rows containing at least a `NaN` value."""
+
     def __init__(self, number_of_rows):
         self.number_of_rows = number_of_rows
 
@@ -33,7 +35,7 @@ class FillInitialRowsWithBfillTransformer(BaseEstimator, TransformerMixin):
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         # Performing the transformation
         data = x.copy()
-        data[:self.number_of_rows] = data.bfill()[:self.number_of_rows]
+        data[: self.number_of_rows] = data.bfill()[: self.number_of_rows]
         return data
 
 
@@ -45,7 +47,7 @@ class ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer(BaseEstimator, Tr
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
-        data['Timestamp'] = pd.to_datetime(data['Timestamp'], utc=True)
+        data["Timestamp"] = pd.to_datetime(data["Timestamp"], utc=True)
         return data
 
 
@@ -56,9 +58,9 @@ class TimestampOrderedTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
-        
+
         data = x.copy()
-        data.sort_values(by='Timestamp', inplace=True)
+        data.sort_values(by="Timestamp", inplace=True)
         return data
 
 
@@ -84,9 +86,9 @@ class TimestampAsIndexTransformer(BaseEstimator, TransformerMixin):
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         assert "Timestamp" in x.columns, "The `Timsetamp` column is missing in the dataframe."
         data = x.copy()
-        data.set_index("Timestamp", inplace=True) # TODO: Remove hardcoded "Timestamp"
+        data.set_index("Timestamp", inplace=True)  # TODO: Remove hardcoded "Timestamp"
         return data
-    
+
 
 class AddEmptyRowsAtMissingTimestampsTransformer(BaseEstimator, TransformerMixin):
     "Add np.nan rows add missing timestamps of the datafreame."
@@ -99,18 +101,20 @@ class AddEmptyRowsAtMissingTimestampsTransformer(BaseEstimator, TransformerMixin
         data = x.copy()
         data_min_timestamp = data.index.min()
         data_max_timestamp = data.index.max()
-        regular_timestamp_range = pd.date_range(start=data_min_timestamp, end=data_max_timestamp,freq='H')
+        regular_timestamp_range = pd.date_range(start=data_min_timestamp, end=data_max_timestamp, freq="H")
         data = data.reindex(regular_timestamp_range, copy=True)
         return data
-    
 
-# Transformers for "predictors_feature_engineering_transformer" 
 
-class NaNsImputationTransformer(BaseEstimator, TransformerMixin): 
+# Transformers for "predictors_feature_engineering_transformer"
+
+
+class NaNsImputationTransformer(BaseEstimator, TransformerMixin):
     """Apply pd.ffill() method to categorical and numerical columns.
     TODO: Look for  linear interpolation based on previous two samples.
     And  implement it for  numerical columns.
     """
+
     def __init__(self):
         pass
 
@@ -128,13 +132,15 @@ class NaNsImputationTransformer(BaseEstimator, TransformerMixin):
         x_transformed = x.ffill()
         return x_transformed
 
+
 class ImputeOutliersTransformer(BaseEstimator, TransformerMixin):
-    """Replace, in the dataframe, values equal to `value` in column `column_name` 
+    """Replace, in the dataframe, values equal to `value` in column `column_name`
     by the `ffill` method (aka by the previous value if it exists, or by "NaN").
     """
-    def __init__(self, column_name, value = 0.0):
-         self.column_name = column_name
-         self.value = value
+
+    def __init__(self, column_name, value=0.0):
+        self.column_name = column_name
+        self.value = value
 
     def fit(self, x: pd.DataFrame = None, y=None):
         return self
@@ -151,6 +157,7 @@ class OneHotEncoderDataFrame(BaseEstimator, TransformerMixin):
     """
     TODO: toarray() decompresses the sparse array...
     """
+
     def __init__(self, **kwargs):
         self.encoder = OneHotEncoder(**kwargs)
         self.column_names = None
@@ -166,19 +173,21 @@ class OneHotEncoderDataFrame(BaseEstimator, TransformerMixin):
     def get_feature_names_out(self) -> List[str]:
         return self.column_names
 
+
 def extract_year_month_day_hour_from_data_index(data: pd.DataFrame) -> pd.DataFrame:
     assert isinstance(data.index, pd.core.indexes.datetimes.DatetimeIndex), "Wrong dataframe index type."
     data["Year"] = pd.Series(data.index).dt.year.values
     data["Month"] = pd.Series(data.index).dt.month.values
     data["Day"] = pd.Series(data.index).dt.day.values
-    data["Hour"] = pd.Series(data.index).dt.hour.values  
+    data["Hour"] = pd.Series(data.index).dt.hour.values
     return data
 
 
 class AddFromIndexTheColumnsYearMonthDayHourTransformer(BaseEstimator, TransformerMixin):
     """Ensure the "Timestamp" column is present, convert it to a pd.Timestamp, derive from it and
-    add to the dataframe the columns  "Year", "Month", "Day", "Hour". 
+    add to the dataframe the columns  "Year", "Month", "Day", "Hour".
     """
+
     def fit(self, x: pd.DataFrame, y=None) -> None:
         self.column_names = x.columns.tolist() + ["Year", "Month", "Day", "Hour"]
         return self
@@ -192,10 +201,12 @@ class AddFromIndexTheColumnsYearMonthDayHourTransformer(BaseEstimator, Transform
     def get_feature_names_out(self) -> List[str]:
         return self.column_names
 
+
 # Transformers for "target_creation_transformer"
 
+
 class WeatherTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, feature_name): 
+    def __init__(self, feature_name):
         self.label_encoder = LabelEncoder()
         self.feature_name = feature_name
         self.no_rain_definition = {"snow": "no_rain", "clear": "no_rain"}
@@ -225,11 +236,12 @@ class WeatherTransformer(BaseEstimator, TransformerMixin):
 class CreateShiftedWeatherSeriesTransformer(BaseEstimator, TransformerMixin):
     """Create a series, the same length as the dataframe, with `feature_name`, "Weather",
     shiffted by `nb_of_hours` hours, so that the Series indicates at timestamp t the "Weather"
-    of timestamp t + `number_of_hours`. 
+    of timestamp t + `number_of_hours`.
     """
-    def __init__(self, number_of_hours: int, feature_name: str): 
-        self.number_of_hours = number_of_hours                       
-        self.feature_name = feature_name   
+
+    def __init__(self, number_of_hours: int, feature_name: str):
+        self.number_of_hours = number_of_hours
+        self.feature_name = feature_name
 
     def fit(self, x: pd.DataFrame, y=None):
         return self
@@ -241,6 +253,7 @@ class CreateShiftedWeatherSeriesTransformer(BaseEstimator, TransformerMixin):
 
 
 # Transformers for "remove_horizonless_rows_transformer"
+
 
 class RemoveHorizonLessRowsTransformer(BaseEstimator, TransformerMixin):
     """
@@ -265,7 +278,7 @@ class RemoveHorizonLessRowsTransformer(BaseEstimator, TransformerMixin):
 
         # Remove the last n_rows from x
         x_transformed = x.iloc[: -self.n_rows]
-        return x_transformed    
+        return x_transformed
 
 
 # class RemoveNoFuture(BaseEstimator, TransformerMixin):
