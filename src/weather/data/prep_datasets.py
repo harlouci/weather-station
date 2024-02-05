@@ -1,13 +1,15 @@
+"""Includes functions to prepare datasets for ML applications."""
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
 @dataclass
 class Dataset:
-    """A dataclass used to represent a Dataset
+    """A dataclass used to represent a Dataset.
 
     Attributes
     ----------
@@ -24,7 +26,6 @@ class Dataset:
     test_y : Pandas Series
         the series of output label w.r.t testing split
     """
-
     train_x: pd.DataFrame
     val_x: pd.DataFrame
     test_x: pd.DataFrame
@@ -40,6 +41,15 @@ class Dataset:
     #     self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
     #     self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
 
+    def apply_transformer(self, transformer):
+        self.train_x = transformer.transform(self.train_x)
+        self.val_x = transformer.transform(self.val_x)
+        self.test_x = transformer.transform(self.test_x)
+        self.train_y = transformer.transform(self.train_y)
+        self.val_y = transformer.transform(self.val_y)
+        self.test_y = transformer.transform(self.test_y)
+        return self
+
     def persist(self, dirpath):
         self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=";", index=False)
         self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=";", index=False)
@@ -49,48 +59,51 @@ class Dataset:
         self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=";", index=False)
 
 
-def spliting_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
+def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)) :
+    """Split the dataframe in train/val/test datasets without shuffling the rows.
+    The train, val, test datasets are chronologically ordered from past to present.
+    """
     data_points = data.shape[0]
     training_points = int(split_size[0] * data_points)
     valid_points = int(split_size[1] * data_points)
 
-    training_data = data[:training_points]
-    valid_data = data[training_points : training_points + valid_points]
+    train_data = data[:training_points]
+    val_data = data[training_points : training_points + valid_points]
     test_data = data[training_points + valid_points :]
-    return training_data, valid_data, test_data
+    return train_data, val_data, test_data
 
 
-def prepare_data(split_data: Tuple[pd.DataFrame], training_transform, test_transform):
-    train = training_transform.fit_transform(split_data[0])
-    valid = training_transform.transform(split_data[1])
-    test = test_transform.fit_transform(split_data[2])
-    return train, valid, test
+def transform_dataset_and_create_target(
+    data: pd.DataFrame,    
+    dataset_transformer,
+    target_creation_transformer,
+):
+    transformed_data = dataset_transformer.transform(data)
+    created_target = target_creation_transformer.fit_transform(transformed_data)
+    return transformed_data, created_target
 
 
-def remove_last_n_rows(data: pd.DataFrame, n: int) -> pd.DataFrame:
-    return data[:-n]
-
-
-def make_dataset(
-    data: pd.DataFrame,
-    training_transform,
-    test_transform,
-    target_transform,
-    remove_last_rows_transformer,
+def prepare_binary_classification_tabular_data(
+    transformed_data: pd.DataFrame,
+    created_target,
     split_size: Tuple[float] = (0.7, 0.1, 0.2),
 ):
-    split_data: Tuple[pd.DataFrame] = spliting_data(data, split_size)
-    split_data = prepare_data(split_data, training_transform, test_transform)
-    target_train = target_transform.fit_transform(split_data[0])
-    target_val = target_transform.transform(split_data[1])
-    target_test = target_transform.transform(split_data[2])
+    splitted_data: Tuple[pd.DataFrame] = split_data(transformed_data, split_size)
+    splitted_target: Tuple[pd.Series] = split_data(created_target, split_size)
 
     dataset = Dataset(
-        train_x=remove_last_rows_transformer.transform(split_data[0]),
-        val_x=remove_last_rows_transformer.transform(split_data[1]),
-        test_x=remove_last_rows_transformer.transform(split_data[2]),
-        train_y=remove_last_rows_transformer.transform(target_train),
-        val_y=remove_last_rows_transformer.transform(target_val),
-        test_y=remove_last_rows_transformer.transform(target_test),
+        train_x = splitted_data[0],
+        val_x = splitted_data[1],
+        test_x = splitted_data[2],
+        train_y = splitted_target[0], 
+        val_y = splitted_target[1], 
+        test_y = splitted_target[2], 
     )
     return dataset
+
+
+def remove_horizonless_rows(
+    dataset,
+    remove_horizonless_rows_transformer
+):
+    return dataset.apply_transformer(remove_horizonless_rows_transformer)
