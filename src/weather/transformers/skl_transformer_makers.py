@@ -3,12 +3,12 @@ from typing import List
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from weather.transformers.transformer_utilities import (
+from weather.transformers.skl_transformer_utilities import (
     DataFrameColumnTransformer,
     SimpleCustomPipeline,
     TransformerToDataFrame,
 )
-from weather.transformers.transformers import (
+from weather.transformers.skl_transformers import (
     AddEmptyRowsAtMissingTimestampsTransformer,
     AddFromIndexTheColumnsYearMonthDayHourTransformer,
     ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer,
