@@ -10,7 +10,7 @@ from weather.transformers.skl_transformer_utilities import (
 )
 from weather.transformers.skl_transformers import (
     AddEmptyRowsAtMissingTimestampsTransformer,
-    AddFromIndexTheColumnsYearMonthDayHourTransformer,
+    AddColumnsYearMonthDayHourFromIndexTransformer,
     ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer,
     CreateShiftedWeatherSeriesTransformer,
     FillInitialRowsWithBfillTransformer,
@@ -71,13 +71,17 @@ class TargetChoice:
     hours: int
 
 
-def make_dataset_transformer(target_choice: TargetChoice, oldnames_newnames_dict, number_of_rows=2):
+def make_dataset_transformer(
+        target_choice: TargetChoice, 
+        oldnames_newnames_dict: dict,
+        number_of_rows: int=2,
+):
     dataset_transformer = Pipeline(
         [
             ("rename_columns", RenameColumnsTransformer(oldnames_newnames_dict)),
-            ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)),
+            ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)), # TODO: before "nans_imputation" ?
             ("timestamp_as_datetime_at_utc_timezone", ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer()),
-            ("timestamp_ordered", TimestampOrderedTransformer()),
+            ("order_timestamp", TimestampOrderedTransformer()),
             ("remove_timestamp_duplicates", RemoveTimestampDuplicatesTransformer()),
             ("timestamp_as_index", TimestampAsIndexTransformer()),
             ("add_empty_rows_at_missing_timestamps", AddEmptyRowsAtMissingTimestampsTransformer()),
@@ -86,12 +90,11 @@ def make_dataset_transformer(target_choice: TargetChoice, oldnames_newnames_dict
     return dataset_transformer
 
 
-def make_predictors_feature_engineering_transformer(feature_names: FeatureNames, target_choice: TargetChoice):
-
-    # Impute NaNs for all columns with ffill #
-    nans_imputation_transformer = NaNsImputationTransformer()
-
-    # Impute outliers (values 0 in "Pressure" and "Humidity")
+def make_predictors_feature_engineering_transformer(
+        feature_names: FeatureNames,
+        target_choice: TargetChoice,
+):
+    # Impute outliers (0 values in "Pressure" and "Humidity")
     outliers_imputation_transformer = Pipeline(
         [
             ("inpute_humidity_outliers", ImputeOutliersTransformer("Humidity")),
@@ -122,11 +125,11 @@ def make_predictors_feature_engineering_transformer(feature_names: FeatureNames,
 
     predictors_feature_engineering_transformer = SimpleCustomPipeline(
         [
-            ("add_columns_year_month_day_hour", AddFromIndexTheColumnsYearMonthDayHourTransformer()),
-            ("weather", WeatherTransformer("Weather")),
-            ("NaNs", nans_imputation_transformer),
-            ("outliers", outliers_imputation_transformer),
-            ("basic", merge_processor),
+            ("add_columns_year_month_day_hour", AddColumnsYearMonthDayHourFromIndexTransformer()),
+            ("nans_imputation", NaNsImputationTransformer()),          # Impute NaNs in all columns with ffill()
+            ("weather", WeatherTransformer("Weather")),                # Create "no_rain", label "rain" as 1, "no_rain" as 0
+            ("outliers", outliers_imputation_transformer),             # Humidity and Pressure columns
+            ("one_hot_encoder_and_standard_scaler", merge_processor),
         ]
     )
 
@@ -136,8 +139,8 @@ def make_predictors_feature_engineering_transformer(feature_names: FeatureNames,
 def make_target_creation_transformer(target_choice: TargetChoice):
     target_transformer = Pipeline(
         [
-            ("weather", WeatherTransformer(target_choice.input_name)),
-            ("step", CreateShiftedWeatherSeriesTransformer(target_choice.hours, target_choice.input_name)),
+            ("weather", WeatherTransformer(target_choice.input_name)), #  TODO: is it essential ?
+            ("shifted_weather", CreateShiftedWeatherSeriesTransformer(target_choice.hours, target_choice.input_name)),
         ]
     )
     return target_transformer
