@@ -58,13 +58,13 @@ def score_evaluation(
     ], """
         The score name must be "accuracy_score", "precision_score", "recall_score" or "f1_score."""
     train_score = score(
-        data.train_y.values, classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.train_x))
+        data.train_y.values, classifier.predict(predictors_feature_engineering_transformer.transform(data.train_x))
     )
     val_score = score(
-        data.val_y.values, classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.val_x))
+        data.val_y.values, classifier.predict(predictors_feature_engineering_transformer.transform(data.val_x))
     )
     test_score = score(
-        data.test_y.values, classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.test_x))
+        data.test_y.values, classifier.predict(predictors_feature_engineering_transformer.transform(data.test_x))
     )
     return Score(
         score.__name__,
@@ -99,19 +99,19 @@ def confusion_matrix_evaluation(
     """
     train_cm = confusion_matrix(
         data.train_y.values,
-        classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.train_x)),
+        classifier.predict(predictors_feature_engineering_transformer.transform(data.train_x)),
         labels=classifier.classes_,
         normalize=normalize,
     )
     val_cm = confusion_matrix(
         data.val_y.values,
-        classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.val_x)),
+        classifier.predict(predictors_feature_engineering_transformer.transform(data.val_x)),
         labels=classifier.classes_,
         normalize=normalize,
     )
     test_cm = confusion_matrix(
         data.test_y.values,
-        classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.test_x)),
+        classifier.predict(predictors_feature_engineering_transformer.transform(data.test_x)),
         labels=classifier.classes_,
         normalize=normalize,
     )
@@ -163,11 +163,11 @@ def train_val_score_evaluation(
         The score name must be "accuracy_score", "precision_score", "recall_score" or "f1_score."""
     train_score = score(
         data.train_y.values,
-        trained_classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.train_x)),
+        trained_classifier.predict(predictors_feature_engineering_transformer.transform(data.train_x)),
     )
     val_score = score(
         data.val_y.values,
-        trained_classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.val_x)),
+        trained_classifier.predict(predictors_feature_engineering_transformer.transform(data.val_x)),
     )
     return TrainValScore(
         score.__name__,
@@ -210,11 +210,11 @@ def train_test_score_evaluation(
     #
     train_val_score = score(
         data.train_val_y.values,
-        retrained_classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.train_val_x)),
+        retrained_classifier.predict(predictors_feature_engineering_transformer.transform(data.train_val_x)),
     )
     test_score = score(
         data.test_y.values,
-        retrained_classifier.predict(predictors_feature_engineering_transformer.fit_transform(data.test_x)),
+        retrained_classifier.predict(predictors_feature_engineering_transformer.transform(data.test_x)),
     )
     return TrainTestScore(
         score.__name__,
