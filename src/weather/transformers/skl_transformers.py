@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
 
 
 # Transformers for "dataset_transformer"
@@ -148,11 +148,9 @@ class NaNsImputationTransformer(BaseEstimator, TransformerMixin):
         pass
 
     def fit(self, x, y=None):
-        # Nothing to fit, so we just return the instance
         return self
 
     def transform(self, x):
-        # Remove the last n_rows from x
         x_transformed = x.ffill()
         return x_transformed
 
@@ -204,26 +202,25 @@ class OneHotEncoderDataFrame(BaseEstimator, TransformerMixin):
 
 class WeatherTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, feature_name):
-        self.label_encoder = LabelEncoder()
         self.feature_name = feature_name
         self.no_rain_definition = {"snow": "no_rain", "clear": "no_rain"}
+        self.label_codes = {'rain': 1, 'no_rain': 0}
 
-    def fit(self, x: pd.DataFrame, y=None) -> "WeatherTransformer":
-        assert self.feature_name in x.columns, f"No {self.feature_name} column in the dataframe."
-        data = x.copy()
-        data[self.feature_name] = data[self.feature_name].ffill() # TODO: Removable ?
-        data[self.feature_name] = data[self.feature_name].replace(self.no_rain_definition)
-        self.label_encoder.fit(data[self.feature_name])
+    def fit(self, x: pd.DataFrame, y=None):
         return self
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
+        assert self.feature_name in x.columns, f"No {self.feature_name} column in the dataframe."
         data = x.copy()
-        data[self.feature_name] = data[self.feature_name].ffill() # TODO:Removable ?
-        data[self.feature_name] = data[self.feature_name].replace(self.no_rain_definition)
-        encoded_weather = self.label_encoder.transform(data[self.feature_name])
-        data.drop([self.feature_name], axis=1, inplace=True)
-        data[self.feature_name] = encoded_weather
-        return data
+        # Hypothetical NaN of `self.feature_name` columns first entry imputed with bfill().
+        data[self.feature_name][:1] = data[self.feature_name].bfill()[:1] 
+        # Nan labels of `self.feature_name` cannot be encoded by 1 or 0, we impute them with method ffill().
+        data[self.feature_name] = data[self.feature_name].ffill() 
+        # Binarization of the target
+        data[self.feature_name] = data[self.feature_name].replace(self.no_rain_definition) 
+        # Label encoding 
+        data[self.feature_name] = data[self.feature_name].map(self.label_codes)               
+        return data                                          
 
 
 class CreateShiftedWeatherSeriesTransformer(BaseEstimator, TransformerMixin):
@@ -241,8 +238,9 @@ class CreateShiftedWeatherSeriesTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, x: pd.DataFrame) -> pd.Series:
         data = x.copy()
-        future = data.shift(-self.number_of_hours)
-        return future[self.feature_name]
+        shifted_data = data.shift(-self.number_of_hours)
+        ground_truth = shifted_data[self.feature_name].iloc[:-self.number_of_hours]
+        return ground_truth # Series, thus no column name.
 
 
 # Transformers for "remove_horizonless_rows_transformer"
@@ -262,6 +260,7 @@ class RemoveHorizonLessRowsTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, x):
-        assert isinstance(x, (pd.Series, pd.DataFrame)), "`x` is not a pandas DataFrame."
-        x_transformed = x.iloc[: -self.n_rows]
-        return x_transformed
+        assert isinstance(x, (pd.Series, pd.DataFrame)), "`x` must be a pd.Series or a pd.DataFrame."
+        data = x.copy()
+        shortened_data = data.iloc[: -self.n_rows]
+        return shortened_data

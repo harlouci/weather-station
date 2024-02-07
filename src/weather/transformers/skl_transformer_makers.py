@@ -71,15 +71,17 @@ class TargetChoice:
     hours: int
 
 
-def make_dataset_transformer(
+def make_dataset_ingestion_transformer(
         target_choice: TargetChoice, 
         oldnames_newnames_dict: dict,
-        number_of_rows: int=2,
 ):
-    dataset_transformer = Pipeline(
+    """This preprocessing pipeline would represent the data ingestion step of a pipeline.
+
+    The dataset is stll raw, but with readable column names and a consistent timestamp set as the index.
+    """
+    dataset_ingestion_transformer = Pipeline(
         [
             ("rename_columns", RenameColumnsTransformer(oldnames_newnames_dict)),
-            ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)), # TODO: before "nans_imputation" ?
             ("timestamp_as_datetime_at_utc_timezone", ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer()),
             ("order_timestamp", TimestampOrderedTransformer()),
             ("remove_timestamp_duplicates", RemoveTimestampDuplicatesTransformer()),
@@ -87,12 +89,28 @@ def make_dataset_transformer(
             ("add_empty_rows_at_missing_timestamps", AddEmptyRowsAtMissingTimestampsTransformer()),
         ]
     )
-    return dataset_transformer
+    return dataset_ingestion_transformer
 
+
+def make_target_creation_transformer(target_choice: TargetChoice):
+    """Creates the pipeline `target_creation_transformer` that produces the ground truth.
+    
+    `target_creation_transformer` must always be preceded by `dataset_transformer`."""
+    target_creation_transformer = Pipeline(
+        [
+            ("weather", WeatherTransformer(target_choice.input_name)),
+            ("ground_truth", CreateShiftedWeatherSeriesTransformer(target_choice.hours, target_choice.input_name)),
+        ]
+    )
+    return target_creation_transformer
+
+def make_remove_horizonless_rows_transformer(target_choice: TargetChoice):
+    return RemoveHorizonLessRowsTransformer(target_choice.hours)
 
 def make_predictors_feature_engineering_transformer(
         feature_names: FeatureNames,
         target_choice: TargetChoice,
+        number_of_rows=1,
 ):
     # Impute outliers (0 values in "Pressure" and "Humidity")
     outliers_imputation_transformer = Pipeline(
@@ -126,25 +144,12 @@ def make_predictors_feature_engineering_transformer(
     predictors_feature_engineering_transformer = SimpleCustomPipeline(
         [
             ("add_columns_year_month_day_hour", AddColumnsYearMonthDayHourFromIndexTransformer()),
+            ("weather", WeatherTransformer("Weather")),                # Remove NaNs in "Weather" ; create "no_rain" ; encode "rain":1, "no_rain":0                                          
+            ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)), 
             ("nans_imputation", NaNsImputationTransformer()),          # Impute NaNs in all columns with ffill()
-            ("weather", WeatherTransformer("Weather")),                # Create "no_rain", label "rain" as 1, "no_rain" as 0
             ("outliers", outliers_imputation_transformer),             # Humidity and Pressure columns
             ("one_hot_encoder_and_standard_scaler", merge_processor),
         ]
     )
 
     return predictors_feature_engineering_transformer
-
-
-def make_target_creation_transformer(target_choice: TargetChoice):
-    target_transformer = Pipeline(
-        [
-            ("weather", WeatherTransformer(target_choice.input_name)), #  TODO: is it essential ?
-            ("shifted_weather", CreateShiftedWeatherSeriesTransformer(target_choice.hours, target_choice.input_name)),
-        ]
-    )
-    return target_transformer
-
-
-def make_remove_horizonless_rows_transformer(target_choice: TargetChoice):
-    return RemoveHorizonLessRowsTransformer(target_choice.hours)
