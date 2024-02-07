@@ -20,6 +20,7 @@ from weather.transformers.skl_transformers import (
     RemoveHorizonLessRowsTransformer,
     RemoveTimestampDuplicatesTransformer,
     RenameColumnsTransformer,
+    RemoveUselessColumnsTransformer,
     TimestampAsIndexTransformer,
     TimestampOrderedTransformer,
     WeatherTransformer,
@@ -74,6 +75,7 @@ class TargetChoice:
 def make_dataset_ingestion_transformer(
         target_choice: TargetChoice, 
         oldnames_newnames_dict: dict,
+        useless_column_names:list = ["S_No", "Location","Apparent_temperature"],
 ):
     """This preprocessing pipeline would represent the data ingestion step of a pipeline.
 
@@ -82,6 +84,7 @@ def make_dataset_ingestion_transformer(
     dataset_ingestion_transformer = Pipeline(
         [
             ("rename_columns", RenameColumnsTransformer(oldnames_newnames_dict)),
+            ("remove_useless_columns", RemoveUselessColumnsTransformer(useless_column_names)),
             ("timestamp_as_datetime_at_utc_timezone", ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer()),
             ("order_timestamp", TimestampOrderedTransformer()),
             ("remove_timestamp_duplicates", RemoveTimestampDuplicatesTransformer()),

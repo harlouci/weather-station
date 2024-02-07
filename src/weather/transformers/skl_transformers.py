@@ -23,7 +23,21 @@ class RenameColumnsTransformer(BaseEstimator, TransformerMixin):
         data.rename(columns=self.oldnames_newnames_dict, inplace=True)
         return data
 
+class RemoveUselessColumnsTransformer(BaseEstimator, TransformerMixin):
 
+    def __init__(self, useless_column_names):
+        self.useless_column_names = useless_column_names
+
+    def fit(self, x: pd.DataFrame = None, y=None):
+        return self
+    
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
+        data = x.copy()
+        for column_name in self.useless_column_names:
+            data.drop([column_name], axis=1, inplace=True)
+        return data
+    
+    
 class ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer(BaseEstimator, TransformerMixin):
     """Convert the dtype of the column "Timestamp" to pd.Timestamp, and set the timezone to UTC."""
 
