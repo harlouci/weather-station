@@ -179,3 +179,13 @@ services:
     depends_on:
       - prefect-server
       - minio
+  server-fastapi:
+    build:
+      dockerfile: Dockerfile.server-fastapi
+    container_name: server-fastapi
+  data-server:
+    environment:
+      - API_URL=http://server-fastapi:8000/predict/
+    build:
+      dockerfile: Dockerfile.data-server
+    container_name: data-server
