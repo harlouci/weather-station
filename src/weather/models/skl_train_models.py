@@ -127,7 +127,7 @@ def confusion_matrix_display(
     classifier: abc.ABCMeta,
 ):
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(18, 5))
-    split_names = ["train", "val", "test"]
+    split_names = results.keys()
     for split_name, ax in zip(split_names, axes.flatten()):
         disp = ConfusionMatrixDisplay(confusion_matrix=results[split_name], display_labels=classifier.classes_)
         disp.plot(ax=ax, cmap="Blues")
