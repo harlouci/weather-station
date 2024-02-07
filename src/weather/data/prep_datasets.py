@@ -33,7 +33,7 @@ class Dataset:
     train_y: pd.Series
     val_y: pd.Series
     test_y: pd.Series
-    train_val_x:pd.DataFrame = None
+    train_val_x: pd.DataFrame = None
     train_val_y: pd.Series = None
 
     def concatenate_train_and_val_splits(self):
@@ -115,4 +115,3 @@ def prepare_binary_classification_tabular_data(
         test_y=splitted_target[2],
     )
     return dataset
-

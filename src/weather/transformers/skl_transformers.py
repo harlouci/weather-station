@@ -5,7 +5,6 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import OneHotEncoder
 
-
 # Transformers for "dataset_transformer"
 
 
@@ -23,6 +22,7 @@ class RenameColumnsTransformer(BaseEstimator, TransformerMixin):
         data.rename(columns=self.oldnames_newnames_dict, inplace=True)
         return data
 
+
 class RemoveUselessColumnsTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self, useless_column_names):
@@ -30,14 +30,14 @@ class RemoveUselessColumnsTransformer(BaseEstimator, TransformerMixin):
 
     def fit(self, x: pd.DataFrame = None, y=None):
         return self
-    
+
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
         for column_name in self.useless_column_names:
             data.drop([column_name], axis=1, inplace=True)
         return data
-    
-    
+
+
 class ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer(BaseEstimator, TransformerMixin):
     """Convert the dtype of the column "Timestamp" to pd.Timestamp, and set the timezone to UTC."""
 
@@ -58,9 +58,9 @@ class TimestampOrderedTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
-        if not data["Timestamp"].is_monotonic_increasing:      # True if there are NaNs in "Timestamp"
-            data.sort_values(by="Timestamp", inplace=True)     # Rows with NaN at "Timestamp" are put at the end.
-            data.dropna(subset=["Timestamp"], inplace=True)    # Remove rows with NaN at "Timestamp" 
+        if not data["Timestamp"].is_monotonic_increasing:  # True if there are NaNs in "Timestamp"
+            data.sort_values(by="Timestamp", inplace=True)  # Rows with NaN at "Timestamp" are put at the end.
+            data.dropna(subset=["Timestamp"], inplace=True)  # Remove rows with NaN at "Timestamp"
         return data
 
 
@@ -154,7 +154,7 @@ class FillInitialRowsWithBfillTransformer(BaseEstimator, TransformerMixin):
 
 class NaNsImputationTransformer(BaseEstimator, TransformerMixin):
     """Apply df.ffill() method to categorical and numerical columns.
-    TODO: Look for  linear interpolation based on the previous two rows, 
+    TODO: Look for  linear interpolation based on the previous two rows,
     and  implement it for  numerical columns.
     """
 
@@ -210,7 +210,6 @@ class OneHotEncoderDataFrame(BaseEstimator, TransformerMixin):
         return self.column_names
 
 
-
 # Transformers for "target_creation_transformer"
 
 
@@ -218,7 +217,7 @@ class WeatherTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, feature_name):
         self.feature_name = feature_name
         self.no_rain_definition = {"snow": "no_rain", "clear": "no_rain"}
-        self.label_codes = {'rain': 1, 'no_rain': 0}
+        self.label_codes = {"rain": 1, "no_rain": 0}
 
     def fit(self, x: pd.DataFrame, y=None):
         return self
@@ -227,14 +226,14 @@ class WeatherTransformer(BaseEstimator, TransformerMixin):
         assert self.feature_name in x.columns, f"No {self.feature_name} column in the dataframe."
         data = x.copy()
         # Hypothetical NaN of `self.feature_name` columns first entry imputed with bfill().
-        data[self.feature_name][:1] = data[self.feature_name].bfill()[:1] 
+        data[self.feature_name][:1] = data[self.feature_name].bfill()[:1]
         # Nan labels of `self.feature_name` cannot be encoded by 1 or 0, we impute them with method ffill().
-        data[self.feature_name] = data[self.feature_name].ffill() 
+        data[self.feature_name] = data[self.feature_name].ffill()
         # Binarization of the target
-        data[self.feature_name] = data[self.feature_name].replace(self.no_rain_definition) 
-        # Label encoding 
-        data[self.feature_name] = data[self.feature_name].map(self.label_codes)               
-        return data                                          
+        data[self.feature_name] = data[self.feature_name].replace(self.no_rain_definition)
+        # Label encoding
+        data[self.feature_name] = data[self.feature_name].map(self.label_codes)
+        return data
 
 
 class CreateShiftedWeatherSeriesTransformer(BaseEstimator, TransformerMixin):
@@ -253,8 +252,8 @@ class CreateShiftedWeatherSeriesTransformer(BaseEstimator, TransformerMixin):
     def transform(self, x: pd.DataFrame) -> pd.Series:
         data = x.copy()
         shifted_data = data.shift(-self.number_of_hours)
-        ground_truth = shifted_data[self.feature_name].iloc[:-self.number_of_hours]
-        return ground_truth # Series, thus no column name.
+        ground_truth = shifted_data[self.feature_name].iloc[: -self.number_of_hours]
+        return ground_truth  # Series, thus no column name.
 
 
 # Transformers for "remove_horizonless_rows_transformer"
@@ -267,6 +266,7 @@ class RemoveHorizonLessRowsTransformer(BaseEstimator, TransformerMixin):
     Parameters:
     - n_rows: int. The number of rows to remove from the end of the DataFrame.
     """
+
     def __init__(self, n_rows=1):
         self.n_rows = n_rows
 

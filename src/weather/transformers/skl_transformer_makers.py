@@ -9,8 +9,8 @@ from weather.transformers.skl_transformer_utilities import (
     TransformerToDataFrame,
 )
 from weather.transformers.skl_transformers import (
-    AddEmptyRowsAtMissingTimestampsTransformer,
     AddColumnsYearMonthDayHourFromIndexTransformer,
+    AddEmptyRowsAtMissingTimestampsTransformer,
     ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer,
     CreateShiftedWeatherSeriesTransformer,
     FillInitialRowsWithBfillTransformer,
@@ -19,8 +19,8 @@ from weather.transformers.skl_transformers import (
     OneHotEncoderDataFrame,
     RemoveHorizonLessRowsTransformer,
     RemoveTimestampDuplicatesTransformer,
-    RenameColumnsTransformer,
     RemoveUselessColumnsTransformer,
+    RenameColumnsTransformer,
     TimestampAsIndexTransformer,
     TimestampOrderedTransformer,
     WeatherTransformer,
@@ -73,9 +73,9 @@ class TargetChoice:
 
 
 def make_dataset_ingestion_transformer(
-        target_choice: TargetChoice, 
-        oldnames_newnames_dict: dict,
-        useless_column_names:list = ["S_No", "Location","Apparent_temperature"],
+    target_choice: TargetChoice,
+    oldnames_newnames_dict: dict,
+    useless_column_names: tuple = ("S_No", "Location", "Apparent_temperature"),
 ):
     """This preprocessing pipeline would represent the data ingestion step of a pipeline.
 
@@ -97,7 +97,7 @@ def make_dataset_ingestion_transformer(
 
 def make_target_creation_transformer(target_choice: TargetChoice):
     """Creates the pipeline `target_creation_transformer` that produces the ground truth.
-    
+
     `target_creation_transformer` must always be preceded by `dataset_transformer`."""
     target_creation_transformer = Pipeline(
         [
@@ -107,13 +107,15 @@ def make_target_creation_transformer(target_choice: TargetChoice):
     )
     return target_creation_transformer
 
+
 def make_remove_horizonless_rows_transformer(target_choice: TargetChoice):
     return RemoveHorizonLessRowsTransformer(target_choice.hours)
 
+
 def make_predictors_feature_engineering_transformer(
-        feature_names: FeatureNames,
-        target_choice: TargetChoice,
-        number_of_rows=1,
+    feature_names: FeatureNames,
+    target_choice: TargetChoice,
+    number_of_rows=1,
 ):
     # Impute outliers (0 values in "Pressure" and "Humidity")
     outliers_imputation_transformer = Pipeline(
@@ -147,10 +149,13 @@ def make_predictors_feature_engineering_transformer(
     predictors_feature_engineering_transformer = SimpleCustomPipeline(
         [
             ("add_columns_year_month_day_hour", AddColumnsYearMonthDayHourFromIndexTransformer()),
-            ("weather", WeatherTransformer("Weather")),                # Remove NaNs in "Weather" ; create "no_rain" ; encode "rain":1, "no_rain":0                                          
-            ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)), 
-            ("nans_imputation", NaNsImputationTransformer()),          # Impute NaNs in all columns with ffill()
-            ("outliers", outliers_imputation_transformer),             # Humidity and Pressure columns
+            (
+                "weather",
+                WeatherTransformer("Weather"),
+            ),  # Remove NaNs in "Weather" ; create "no_rain" ; encode "rain":1, "no_rain":0
+            ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)),
+            ("nans_imputation", NaNsImputationTransformer()),  # Impute NaNs in all columns with ffill()
+            ("outliers", outliers_imputation_transformer),  # Humidity and Pressure columns
             ("one_hot_encoder_and_standard_scaler", merge_processor),
         ]
     )
