@@ -33,6 +33,8 @@ class Dataset:
     train_y: pd.Series
     val_y: pd.Series
     test_y: pd.Series
+    train_val_x:pd.DataFrame = None
+    train_val_y: pd.Series = None
 
     def concatenate_train_and_val_splits(self):
         self.train_val_x = pd.concat([self.train_x, self.val_x])
