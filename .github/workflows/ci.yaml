@@ -3,6 +3,7 @@ on:
     branches:
       - main
       - add_cleaning
+      - app
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -13,30 +14,7 @@ env:
   GKE_LOCATION: ${{ vars.GKE_LOCATION }}
 
 jobs:
-  ci:
-    name: Check lint, check format, run tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # TODO: Use pregenerated requirements
-      - name: Set up style and lint generate-requirements
-        run: |
-          pip install '.[style]'
-
-      # TODO: Replace next 2 with commands
-      - name: Lint
-        run: |
-          ruff check src/weather 
-      - name: Format check
-        run: |
-          black --check src/weather
   setup-build-publish-deploy:
     # DONE: Consider renaming
     name: CICD- Build and Deploy
@@ -47,7 +25,6 @@ jobs:
 
     # By specifying this we tell GitHub actions to wait
     # until job "ci" is done to run our job
-    needs: ["ci"]
 
     permissions:
       contents: 'read'

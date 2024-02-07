@@ -40,7 +40,7 @@ nb_row = df.shape[0]
 tl = Timeloop()
 
 
-@tl.job(interval=timedelta(seconds=5))
+@tl.job(interval=timedelta(seconds=2))
 def send_new_data():
     row = pop_first_row(df)
     if row is None:
@@ -55,7 +55,7 @@ def send_new_data():
 
     # Send a POST request to the API
     try:
-        response = requests.get(api_url, json=item_data.dict())
+        response = requests.post(api_url, json=item_data.dict())
     except requests.exceptions.RequestException as e:
         # Handle connection errors or exceptions
         print("Error connecting to the API:", e)

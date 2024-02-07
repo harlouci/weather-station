@@ -1,5 +1,6 @@
 import joblib
 import pandas as pd
+from pathlib import Path
 from weather.data.data_transformers import (
     TargetChoice,
     make_cleaning_transformer,
@@ -57,6 +58,7 @@ model.fit(input_transformer.transform(dataset.train_x), dataset.train_y)
 results = accuracy_evaluation(input_transformer, model, dataset)
 print_accuracy_results(results)
 
+model_folder = Path(__file__).resolve().parent.parent / "model"
 
-joblib.dump(model, "model.pkl")
-joblib.dump(input_transformer, "feature_eng_pipeline.pkl")
+joblib.dump(model, model_folder / "model.pkl")
+joblib.dump(input_transformer, model_folder / "feature_eng_pipeline.pkl")

@@ -31,8 +31,9 @@ with open(file_path, 'r') as file:
     phones = file.readlines()
 
 # Create a POST endpoint to receive JSON data and return a response
-@app.get("/predict/")
+@app.post("/predict/")
 async def predict(item: Item):
+    print('alo')
     df = pd.DataFrame([item.dict()])
     df.rename(columns=json_to_dataframe_col, inplace=True)
     y = model.predict(input_transformer.transform(df))
