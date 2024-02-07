@@ -121,7 +121,7 @@ def make_predictors_feature_engineering_transformer(
     outliers_imputation_transformer = Pipeline(
         [
             ("inpute_humidity_outliers", ImputeOutliersTransformer("Humidity")),
-            ("inpute_pressure_outliers", ImputeOutliersTransformer("Pressure")),
+            ("inpute_pressure_outliers", ImputeOutliersTransformer("Pressure_millibars")),
         ]
     )
 
@@ -148,10 +148,12 @@ def make_predictors_feature_engineering_transformer(
 
     predictors_feature_engineering_transformer = SimpleCustomPipeline(
         [
+            ("timestamp_as_datetime_at_utc_timezone", ConvertTimestampIntoDatetimeAndSetUTCtimezoneTransformer()),
+            ("timestamp_as_index", TimestampAsIndexTransformer()),
             ("add_columns_year_month_day_hour", AddColumnsYearMonthDayHourFromIndexTransformer()),
             (
                 "weather",
-                WeatherTransformer("Weather"),
+                WeatherTransformer("Weather_conditions"),
             ),  # Remove NaNs in "Weather" ; create "no_rain" ; encode "rain":1, "no_rain":0
             ("fill_initial_rows_nans", FillInitialRowsWithBfillTransformer(number_of_rows)),
             ("nans_imputation", NaNsImputationTransformer()),  # Impute NaNs in all columns with ffill()

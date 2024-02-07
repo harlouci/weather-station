@@ -9,7 +9,7 @@ COPY src /app/src
 RUN pip install --no-cache-dir --no-deps .
 
 COPY client_app /app/client_app
-COPY model /app/model
+COPY models /app/models
 
 WORKDIR /app/client_app
 

@@ -13,10 +13,10 @@ load_dotenv("api.env")
 
 app = FastAPI()
 
-model_folder = Path(__file__).resolve().parent.parent / "model"
+model_folder = Path(__file__).resolve().parent.parent / "models"
 
 model = joblib.load(model_folder / 'model.pkl')
-input_transformer = joblib.load(model_folder / 'feature_eng_pipeline.pkl')
+input_transformer = joblib.load(model_folder / 'predictors_feature_eng_pipeline.pkl')
 
 account_sid = os.getenv('TWILIO_ACCOUNT_SID')
 auth_token = os.getenv('TWILIO_AUTH_TOKEN')
@@ -33,7 +33,6 @@ with open(file_path, 'r') as file:
 # Create a POST endpoint to receive JSON data and return a response
 @app.post("/predict/")
 async def predict(item: Item):
-    print('alo')
     df = pd.DataFrame([item.dict()])
     df.rename(columns=json_to_dataframe_col, inplace=True)
     y = model.predict(input_transformer.transform(df))

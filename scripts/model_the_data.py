@@ -43,32 +43,26 @@ models_dir.mkdir(exist_ok=True)
 # Select the predictors
 feature_names = FeatureNames(
     numerical=[
-        "Temperature",
+        "Temperature_C",
         "Humidity",
-        "Wind_speed",
-        "Wind_bearing",
-        "Visibility",
-        "Pressure",
+        "Wind_speed_kmph",
+        "Wind_bearing_degrees",
+        "Visibility_km",
+        "Pressure_millibars",
     ],
     categorical=[],  # Add or remove "Weather", "Month" to the predictors
 )
 
 # Set "Weather" within 4 hours as target
-target_name = "Weather"
+target_name = "Weather_conditions"
 horizon = 4
 target_choice = TargetChoice(target_name, horizon)
 
-
+useless_column_names = ("S_No", "Location", "Apparent_Temperature_C")
 oldnames_newnames_dict = {
-    "Temperature_C": "Temperature",
-    "Apparent_Temperature_C": "Apparent_temperature",
-    "Wind_speed_kmph": "Wind_speed",
-    "Wind_bearing_degrees": "Wind_bearing",
-    "Visibility_km": "Visibility",
-    "Pressure_millibars": "Pressure",
-    "Weather_conditions": "Weather"}
+    }
 
-dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
+dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict, useless_column_names)
 remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
 target_creation_transformer = make_target_creation_transformer(target_choice)
 predictors_feature_engineering_transformer = make_predictors_feature_engineering_transformer(feature_names, target_choice)
