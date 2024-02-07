@@ -85,7 +85,7 @@ class TimestampAsIndexTransformer(BaseEstimator, TransformerMixin):
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         assert "Timestamp" in x.columns, "The `Timsetamp` column is missing in the dataframe."
         data = x.copy()
-        data.set_index("Timestamp", inplace=True, drop=False)  # we need to keep the timestamp, because we need it later when doing the feature
+        data.set_index("Timestamp", inplace=True)
         return data
 
 

@@ -43,26 +43,32 @@ models_dir.mkdir(exist_ok=True)
 # Select the predictors
 feature_names = FeatureNames(
     numerical=[
-        "Temperature_C",
+        "Temperature",
         "Humidity",
-        "Wind_speed_kmph",
-        "Wind_bearing_degrees",
-        "Visibility_km",
-        "Pressure_millibars",
+        "Wind_speed",
+        "Wind_bearing",
+        "Visibility",
+        "Pressure",
     ],
     categorical=[],  # Add or remove "Weather", "Month" to the predictors
 )
 
 # Set "Weather" within 4 hours as target
-target_name = "Weather_conditions"
+target_name = "Weather"
 horizon = 4
 target_choice = TargetChoice(target_name, horizon)
 
-useless_column_names = ("S_No", "Location", "Apparent_Temperature_C")
-oldnames_newnames_dict = {
-    }
 
-dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict, useless_column_names)
+oldnames_newnames_dict = {
+    "Temperature_C": "Temperature",
+    "Apparent_Temperature_C": "Apparent_temperature",
+    "Wind_speed_kmph": "Wind_speed",
+    "Wind_bearing_degrees": "Wind_bearing",
+    "Visibility_km": "Visibility",
+    "Pressure_millibars": "Pressure",
+    "Weather_conditions": "Weather"}
+
+dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
 remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
 target_creation_transformer = make_target_creation_transformer(target_choice)
 predictors_feature_engineering_transformer = make_predictors_feature_engineering_transformer(feature_names, target_choice)
@@ -111,7 +117,6 @@ models = {
 normalize = "all"  # for confusion matrices
 
 # randoms forest
-
 model_name = "RandomForest"
 model = models[model_name]["model"]
 
@@ -138,3 +143,4 @@ joblib.dump(remove_horizonless_rows_transformer, model_subdir / "remove_horizonl
 joblib.dump(target_creation_transformer, model_subdir / "target_creation_pipeline.pkl")
 joblib.dump(predictors_feature_engineering_transformer, model_subdir / "predictors_feature_eng_pipeline.pkl")
 joblib.dump(model, model_subdir / "model.pkl");
+
