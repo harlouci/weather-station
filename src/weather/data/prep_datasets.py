@@ -94,7 +94,7 @@ def transform_dataset_and_create_target(
 ):
     ingested_data = dataset_ingestion_transformer.transform(data)
     transformed_data = remove_horizonless_rows_transformer.transform(ingested_data)
-    created_target = target_creation_transformer.fit_transform(ingested_data)
+    created_target = target_creation_transformer.transform(ingested_data)
     return transformed_data, created_target
 
 
