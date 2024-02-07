@@ -33,8 +33,7 @@ class RemoveUselessColumnsTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         data = x.copy()
-        for column_name in self.useless_column_names:
-            data.drop([column_name], axis=1, inplace=True)
+        data.drop(list(self.useless_column_names), axis=1, inplace=True)
         return data
 
 
