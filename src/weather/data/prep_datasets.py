@@ -33,7 +33,14 @@ class Dataset:
     train_y: pd.Series
     val_y: pd.Series
     test_y: pd.Series
+    train_val_x: pd.DataFrame = None
+    train_val_y: pd.Series = None
 
+    def concatenate_train_and_val_splits(self):
+        self.train_val_x = pd.concat([self.train_x, self.val_x])
+        self.train_val_y = pd.concat([self.train_y, self.val_y])
+
+    # TODO: remove this commented out chunks
     # def merge_in(self, dataset):
     #     self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
     #     self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
@@ -42,14 +49,19 @@ class Dataset:
     #     self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
     #     self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
 
-    def apply_transformer(self, transformer):
-        self.train_x = transformer.transform(self.train_x)
-        self.val_x = transformer.transform(self.val_x)
-        self.test_x = transformer.transform(self.test_x)
-        self.train_y = transformer.transform(self.train_y)
-        self.val_y = transformer.transform(self.val_y)
-        self.test_y = transformer.transform(self.test_y)
-        return self
+    # def apply_transformer(self, transformer):
+    #     self.train_x = transformer.transform(self.train_x)
+    #     self.val_x = transformer.transform(self.val_x)
+    #     self.test_x = transformer.transform(self.test_x)
+    #     self.train_y = transformer.transform(self.train_y)
+    #     self.val_y = transformer.transform(self.val_y)
+    #     self.test_y = transformer.transform(self.test_y)
+    #     return self
+
+    # def apply_transformer_to_test_split(self, transformer):
+    #     self.test_x = transformer.transform(self.test_x)
+    #     self.test_y = transformer.transform(self.test_y)
+    #     return self
 
     def persist(self, dirpath):
         self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=";", index=False)
@@ -76,11 +88,13 @@ def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
 
 def transform_dataset_and_create_target(
     data: pd.DataFrame,
-    dataset_transformer,
+    dataset_ingestion_transformer,
+    remove_horizonless_rows_transformer,
     target_creation_transformer,
 ):
-    transformed_data = dataset_transformer.transform(data)
-    created_target = target_creation_transformer.fit_transform(transformed_data)
+    ingested_data = dataset_ingestion_transformer.transform(data)
+    transformed_data = remove_horizonless_rows_transformer.transform(ingested_data)
+    created_target = target_creation_transformer.transform(ingested_data)
     return transformed_data, created_target
 
 
@@ -101,7 +115,3 @@ def prepare_binary_classification_tabular_data(
         test_y=splitted_target[2],
     )
     return dataset
-
-
-def remove_horizonless_rows(dataset, remove_horizonless_rows_transformer):
-    return dataset.apply_transformer(remove_horizonless_rows_transformer)
