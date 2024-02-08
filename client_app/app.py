@@ -26,7 +26,7 @@ auth_token = os.getenv('TWILIO_AUTH_TOKEN')
 twilio_phone = os.getenv('TWILIO_PHONE')
 client = Client(account_sid, auth_token)
 
-SEND_MESSAGE = False
+SEND_MESSAGE = os.getenv('SEND_MESSAGE')
 
 file_path = 'phones.txt'
 
@@ -102,14 +102,15 @@ async def predict(item: Item):
     previous_item_df = new_item_df
     previous_day = new_day
 
-    if SEND_MESSAGE and y==1:
-        for phone in phones:
-            message = client.messages.create(
-                from_=twilio_phone,
-                body="Dear docker, it will rain in 4 hours.",
-                to=phone
-            )
-        print("It will rain!")
+    if y==1:
+        if SEND_MESSAGE:
+            for phone in phones:
+                message = client.messages.create(
+                    from_=twilio_phone,
+                    body="Dear docker, it will rain in 4 hours.",
+                    to=phone
+                )
+            print("It will rain!")
         return {"prediction": "rain"}
     else:
         return {"prediction": "no rain"}
