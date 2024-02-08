@@ -8,8 +8,8 @@ import joblib
 import os
 from dataclasses import dataclass
 from itertools import product
+# import plotly.express as px # TODO
 from typing import Dict, List
-
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -104,7 +104,7 @@ def train_and_evaluate_with_tracking(
         classifier_shortname = camel_to_snake(classifier.__name__)
         with mlflow.start_run(experiment_id=experiment_id, 
                               run_name=f"run_{classifier_shortname}"):
-            mlflow.doctor()
+            #mlflow.doctor()
             mlflow.set_tag("sklearn_model", classifier_shortname)
             # Instantiate and train the classifier
             classifier_obj = classifier()
@@ -119,14 +119,11 @@ def train_and_evaluate_with_tracking(
             )
             # Track accuracy metrics
             mlflow.log_metric("train_"+score_dict["score_name"], score_dict['train'])
-            mlflow.log_metric("valid_"+score_dict["score_name"], score_dict['val'])
+            mlflow.log_metric("val_"+score_dict["score_name"], score_dict['val'])
             mlflow.log_metric("test_"+score_dict["score_name"], score_dict['test'])
             # Generate an example input and a model signature 
             sample = data.train_x.sample(3)
-            #print(sample) TODO
-            #print(sample.dtypes)
-            #print(sample.columns)
-            signature = infer_signature(data.train_x.head(), 
+            signature = infer_signature(data.train_x.head(),  # TODO: slightly modify pipelines qui remove NaNs before feature engineering
                                         classifier_obj.predict(train_inputs))
             # Log the trained model as an MLflow artifact
             artifacts = {"predictors_feature_eng_path": tmp_fpath('predictors_feature_eng_pipeline.joblib'), 
@@ -140,26 +137,36 @@ def train_and_evaluate_with_tracking(
                 signature=signature,
                 extra_pip_requirements=["weather"],
             )
-            # #Track ROC curve plots for validation and test sets
-            # val_cm = confusion_matrix(
-            #     data.val_y.values,
-            #     classifier_obj.predict(predictors_feature_engineering_transformer.transform(data.val_x)),
-            #     labels=classifier_obj.classes_,
-            #     normalize="all",
-            # )
+            #Track ROC curve plots for validation and test sets
+            val_cm = confusion_matrix(
+                data.val_y.values,
+                classifier_obj.predict(predictors_feature_engineering_transformer.transform(data.val_x)),
+                labels=classifier_obj.classes_,
+                normalize="all",
+            )
+
+            # fig = px.imshow(val_cm,
+            #     labels=dict(x="Predicted label", y="True label", color=""),
+            #     x=['0.0', '1.0'],
+            #     y=['0.0', '1.0']
+            #    )
+            # fig.update_xaxes(side="bottom")
             # display = ConfusionMatrixDisplay(
             #     confusion_matrix=val_cm,
             #     display_labels=classifier_obj.classes_)
-            # mlflow.log_figure(display.figure_, 'plots/ValConfustionMatrixDisplay.png')
-            # test_cm = confusion_matrix(
-            #     data.test_y.values,
-            #     classifier_obj.predict(predictors_feature_engineering_transformer.transform(data.test_x)),
-            #     labels=classifier_obj.classes_,
-            #     normalize="all",
-            # )
+            # print("HERE")
+            # print(type(display))
+            # print(isinstance(display, matplotlib.figure.Figure))
+            #mlflow.log_figure(fig, 'plots/ValConfustionMatrixDisplay.png')
+            test_cm = confusion_matrix(
+                data.test_y.values,
+                classifier_obj.predict(predictors_feature_engineering_transformer.transform(data.test_x)),
+                labels=classifier_obj.classes_,
+                normalize="all",
+            )
             # display = ConfusionMatrixDisplay(
             #     confusion_matrix=test_cm,
             #     display_labels=classifier_obj.classes_)
-            # mlflow.log_figure(display.figure_, 'plots/TestConfustionMatrixDisplay.png')
+            # mlflow.log_figure(display, 'plots/TestConfustionMatrixDisplay.png')
     # Clean up temporary directory
     clean_temporary_dir()

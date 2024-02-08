@@ -20,7 +20,7 @@ def clean_temporary_dir(tmp_dir_path:os.PathLike='tmp') -> None:
     """
     if os.path.exists(tmp_dir_path):
         shutil.rmtree(tmp_dir_path)
-
+        
 # def create_temporary_dir_if_not_exists(tmp_dir_path: os.PathLike = "tmp") -> None:
 #     """creation of a temporary folder
 
