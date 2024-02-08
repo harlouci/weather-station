@@ -72,7 +72,7 @@ def save_current_data(current_df, current_pred, current_ground_truth_sr, date):
     filename = f"{date}_pred.csv"
     current_pred.to_csv(current_folder / filename, header=True)
     filename = f"{date}_grouf_truth.csv"
-    current_ground_truth_sr.to_csv(current_folder / filename, header=True)
+    #current_ground_truth_sr.to_csv(current_folder / filename, header=True)
 
 
 
@@ -87,21 +87,20 @@ async def predict(item: Item):
     new_item_df = json_to_item_df(item.dict())
     new_date = get_date(new_item_df)
     new_day = new_date.day
-    print(f'day ------------------------{new_day}')
+
     if previous_day is not None and new_day != previous_day:
         save_current_data(current_df, current_predictions_sr, current_ground_truth_sr, new_date)
         current_df, current_predictions_sr, current_ground_truth_sr = None, None, None
 
 
 
-
     y = predict_df(previous_item_df, new_item_df)
+
 
     current_predictions_sr = update_current_pred(current_predictions_sr, pd.Series([y]))
     current_df = update_current_month_df(current_df, new_item_df)
     previous_item_df = new_item_df
     previous_day = new_day
-    print('555555555555555555555555555555555555555555555555555555555555555555')
 
     if SEND_MESSAGE and y==1:
         for phone in phones:
@@ -110,7 +109,7 @@ async def predict(item: Item):
                 body="Dear docker, it will rain in 4 hours.",
                 to=phone
             )
-        print("It will rain!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("It will rain!")
         return {"prediction": "rain"}
     else:
         return {"prediction": "no rain"}
