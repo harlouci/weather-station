@@ -38,11 +38,16 @@ useless_columns = ['S_No', 'Location', 'Apparent_temperature']
 @app.post("/predict/")
 async def predict(item: Item):
     df = pd.DataFrame([item.dict()])
+
     df.rename(columns=json_to_dataframe_col, inplace=True)
     for column_name in useless_columns:
         df[column_name] = ''
     df = data_ingestion_pipeline.transform(df)
-    print(df)
+    print('allo')
+    print(list(df))
+    print(input_transformer)
+    df = input_transformer.transform(df)
+    print(list(df))
     y = model.predict(input_transformer.transform(df))
     if y[0]==1:
         for phone in phones:
