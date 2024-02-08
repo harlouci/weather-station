@@ -104,6 +104,7 @@ def train_and_evaluate_with_tracking(
         classifier_shortname = camel_to_snake(classifier.__name__)
         with mlflow.start_run(experiment_id=experiment_id, 
                               run_name=f"run_{classifier_shortname}"):
+            mlflow.doctor()
             mlflow.set_tag("sklearn_model", classifier_shortname)
             # Instantiate and train the classifier
             classifier_obj = classifier()
