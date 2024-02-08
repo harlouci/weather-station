@@ -1,5 +1,5 @@
 import requests
-from data import Item, dataframe_col_to_json
+from data import Item
 import pandas as pd
 from timeloop import Timeloop
 from datetime import timedelta
@@ -11,6 +11,13 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv("data.env")
 
+TIME_LOOP = int(os.getenv("TIME_LOOP"))
+
+data_file_name = os.getenv("DATA_FILE_NAME")
+file_path = Path(__file__).resolve().parent.parent / "data" / data_file_name
+# URL of your FastAPI API
+api_url = os.getenv("API_URL")
+
 def pop_first_row(df:pd.DataFrame):
     if not df.empty:
         first_row = df.iloc[0].copy()
@@ -21,36 +28,26 @@ def pop_first_row(df:pd.DataFrame):
         # Handle the case when the DataFrame is empty, e.g., return None or raise an exception.
         return None
 
-data_file_name = os.getenv("DATA_FILE_NAME")
-file_path = Path(__file__).resolve().parent.parent / "data" / data_file_name
-# URL of your FastAPI API
-api_url = os.getenv("API_URL")
+
 
 # Define the Pydantic model for the JSON data
 df= pd.read_csv(file_path)
-df = df[list(dataframe_col_to_json)]
-df.rename(columns=dataframe_col_to_json, inplace=True)
 
-df =df.sample(20)
+df =df.head(200)
 df.reset_index(inplace=True, drop=True)
 
-
-
-nb_row = df.shape[0]
 tl = Timeloop()
 
 
-@tl.job(interval=timedelta(seconds=2))
+
+
+@tl.job(interval=timedelta(seconds=TIME_LOOP))
 def send_new_data():
     row = pop_first_row(df)
     if row is None:
         print('no data to send anymore!')
         return None
     row = row.fillna('')
-    print(row)
-    print(df.shape[0])
-    print()
-
     item_data = Item(**row.to_dict())
 
     # Send a POST request to the API

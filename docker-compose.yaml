@@ -183,6 +183,9 @@ services:
     build:
       dockerfile: Dockerfile.server-fastapi
     container_name: server-fastapi
+    volumes:
+      - ./data:/app/data/
+      - ./fastapi_volume:/app/fastapi_volume/
   data-server:
     environment:
       - API_URL=http://server-fastapi:8000/predict/
