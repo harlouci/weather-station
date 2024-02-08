@@ -10,9 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from prettytable import PrettyTable
 from sklearn.metrics import (
-    ConfusionMatrixDisplay,
     accuracy_score,
     confusion_matrix,
+    ConfusionMatrixDisplay,
+    f1_score,
+    precision_score,
+    recall_score,
 )
 from sklearn.pipeline import Pipeline
 from weather.data.prep_datasets import Dataset
@@ -203,11 +206,6 @@ def train_test_score_evaluation(
         "f1_score",
     ], """
         The score name must be "accuracy_score", "precision_score", "recall_score" or "f1_score."""
-
-    # Create the concatenations `data.train_val_x` and `data_train_val.y`
-    # data.concatenate_train_and_val_splits()
-
-    #
     train_val_score = score(
         data.train_val_y.values,
         retrained_classifier.predict(predictors_feature_engineering_transformer.transform(data.train_val_x)),
@@ -256,7 +254,57 @@ def accuracy_evaluation(
     }
 
 
-def print_accuracy_results(results: List[Dict[str, str | float]] | Dict[str, str | float]) -> None:
+
+
+
+# 4. Train model and evaluate score with accuracy_evaluation()
+
+def score_evaluation_dict(
+    score,
+    predictors_feature_engineering_transformer: Pipeline,
+    classifier: abc.ABCMeta,
+    data: Dataset,
+    decimals: int = 3,
+) -> dataclass:
+    """Compute binary classification scores on training/validation/testing data splits
+       by a given pair of data transformer and classifier.
+
+    Args:
+    ----
+        score: a scikit-learn metric function, e.g "accuracy_score", "f1_score".
+        data_transfomer (Pipeline): sklearn feature engineering pipeline
+        classifier (abc.ABCMeta): sklearn classifier class
+        data (Dataset): datasets (training/validation/test)
+        decimals (int, optional): number decimal digits of precision. Defaults to 3.
+
+    Returns:
+    -------
+        dataclass: (keys: splits names, values: scores)
+    """
+    assert score.__name__ in [
+        "accuracy_score",
+        "precision_score",
+        "recall_score",
+        "f1_score",
+    ], """
+        The score name must be "accuracy_score", "precision_score", "recall_score" or "f1_score."""
+    train_score = score(
+        data.train_y.values, classifier.predict(predictors_feature_engineering_transformer.transform(data.train_x))
+    )
+    val_score = score(
+        data.val_y.values, classifier.predict(predictors_feature_engineering_transformer.transform(data.val_x))
+    )
+    test_score = score(
+        data.test_y.values, classifier.predict(predictors_feature_engineering_transformer.transform(data.test_x))
+    )
+    return {
+        "score_name": score.__name__,
+        "train": round(train_score, decimals),
+        "val": round(val_score, decimals),
+        "test": round(test_score, decimals),
+    }
+
+def print_score_dict_results(results: List[Dict[str, str | float]] | Dict[str, str | float]) -> None:
     """Print the accuracy scoring results as pretty tables
 
     Args:
@@ -273,30 +321,40 @@ def print_accuracy_results(results: List[Dict[str, str | float]] | Dict[str, str
     print(tab)
 
 
-# 4. Train model and evaluate score with accuracy_evaluation()
-
-
 def train_and_evaluate(
-    data: Dataset, data_transfomer: Pipeline, classifers_list: List[abc.ABCMeta]
+    data: Dataset,
+    predictors_feature_engineering_transformer: Pipeline,
+    classifers_list: List[abc.ABCMeta],
+    score,
 ) -> List[Dict[str, str | float]]:
     """Train each classifier of the list on the training data then evaluate it on all the splits
 
     Args:
     ----
         data (Dataset): datasets (training/validation/test)
-        data_transfomer (Pipeline): sklearn feature engineering pipeline
-        classifers_list (List[abc.ABCMeta]): list of sklearn classifier class
+        predictors_feature_engineering_transformer (Pipeline): sklearn feature engineering pipeline
+        classifers_list (List[abc.ABCMeta]): list of sklearn classifier classes
 
     Returns:
     -------
         List[Dict[str,str|float]]: A list of dictionaries, where each dictionary contains:
                                     'model': The name of the classifier class.
-                                    Additional evaluation metrics (e.g., accuracy)
-                                    obtained from the accuracy_evaluation function.
+                                    'score_name': The name of the evaluation metric, e.g. f1_score
+                                    Additional scores obtained from the score_evaluation_dict() function.
     """
     results = []
     for classifier in classifers_list:
         classifier_obj = classifier()
-        classifier_obj.fit(data_transfomer.transform(data.train_x), data.train_y)
-        results.append({"model": classifier.__name__, **accuracy_evaluation(data_transfomer, classifier_obj, data)})
+        classifier_obj.fit(
+            predictors_feature_engineering_transformer.fit_transform(data.train_x),
+            data.train_y,
+        )
+        results.append({"model": classifier.__name__, 
+                        **score_evaluation_dict(
+                            score,
+                            predictors_feature_engineering_transformer,
+                            classifier_obj, 
+                            data,
+                            )
+                        })
     return results
