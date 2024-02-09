@@ -186,9 +186,11 @@ services:
     volumes:
       - ./data:/app/data/
       - ./fastapi_volume:/app/fastapi_volume/
-  data-server:
+  weather-station:
     environment:
       - API_URL=http://server-fastapi:8000/predict/
     build:
-      dockerfile: Dockerfile.data-server
-    container_name: data-server
+      dockerfile: Dockerfile.weather-station
+    container_name: weather-station
+    volumes:
+      - ./data:/app/data/
