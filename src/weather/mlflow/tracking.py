@@ -45,7 +45,7 @@ def load_model_from_run(tracking_server_uri:str, run:Run) -> PyFuncModel:
     return model
 
 def get_best_run(experiment:Experiment, 
-                 metric:str="valid_accuracy", order:str="DESC") -> Run:
+                 metric:str="val_f1_score", order:str="DESC") -> Run:
     """Find the best experiment run entity
 
     Args:

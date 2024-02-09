@@ -1,27 +1,32 @@
 import logging
-from typing import Callable
-
+import warnings
+warnings.filterwarnings("ignore")
+import mlflow
+from time import time
 import prefect.context
 import prefect.runtime.flow_run
-from prefect import flow, task
-from prefect.artifacts import create_link_artifact
-from prefect.logging import get_run_logger
-from sklearn.ensemble import RandomForestClassifier
 from weather.data.prep_datasets import Dataset
 from weather.mlflow.registry import register_model_from_run
-from weather.mlflow.tracking import Experiment, get_best_run
-
-#from weather.pipelines.blocks import dvc_block
+from weather.mlflow.tracking import Experiment
+from weather.mlflow.tracking import get_best_run
+from weather.mlflow.registry import get_model_version_by_stage
+from weather.mlflow.registry import transition_model_to_production
+from weather.mlflow.registry import transition_model_to_staging
 from weather.pipelines.common import (
-    data_preparation,
+    build_transformer,
+    validate_model,
+    data_validation,
     deploy,
     fit_transformer,
     load_artifacts_from_mlflow,
+    raw_data_extraction, 
+    prep_data_construction,
     log_metrics,
     make_mlflow_artifact_uri,
     score,
     stop_mlflow_run,
 )
+from weather.mlflow.registry import tag_model
 from weather.pipelines.definitions import (
     MLFLOW_TRACKING_URI,
     feature_names,
@@ -36,8 +41,10 @@ from weather.transformers.skl_transformer_makers import (
     make_remove_horizonless_rows_transformer,
     make_target_creation_transformer,
 )
-
-import mlflow
+from prefect import flow, task
+from prefect.artifacts import create_link_artifact
+from prefect.logging import get_run_logger
+from sklearn.ensemble import RandomForestClassifier
 
 
 # N.B.: Note that we removed the feature_names
@@ -157,6 +164,7 @@ def tune(
     metric: Callable, # alias for score
     max_runs,
     experiment_bag,
+    ds_info,
 
 ) -> None:
     """
@@ -193,24 +201,21 @@ def tune(
     )
 
 
-@flow(name="automated-pipeline", on_completion=[stop_mlflow_run])
+@flow(name="full-pipeline", on_completion=[stop_mlflow_run])
 def automated_pipeline(
-    #load_splits_from_dvc: bool = True,
-    #reextract: bool = False,
-    #db: str | None = None,
-    #socio_eco_data_file: str | None = None,
-    max_runs: int = 20,
-    mlflow_experiment_name: str = "tune_random_forest_with_automated_pipeline",
+    ref_data_bucket: str = "reference-data",
+    curr_data_bucket: str = "current-data",
+    max_runs: int = 1,
+    mlflow_experiment_name: str = "tune_randome_forest_with_full_pipeline",
 ):
     """Replaces experiments with HP tuning"""
     ######################################
     # Run setup
     ######################################
-    #dvc_remote = "minio-mybucket-from-laptop"
-
     # MLFlow setup
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    current_experiment = mlflow.set_experiment(experiment_name=mlflow_experiment_name)
+    unique_experiment_name = mlflow_experiment_name + "_" + str(int(time()))
+    current_experiment = mlflow.set_experiment(experiment_name=unique_experiment_name)
 
     # Create a configuration object we can pass around
     pipeline_experiment_bag = {}
@@ -218,8 +223,7 @@ def automated_pipeline(
     pipeline_experiment_bag["mlflow_experiment_id"] = current_experiment.experiment_id
     pipeline_experiment_bag["prefect_run_name"] = prefect.runtime.flow_run.get_name()
 
-    create_link_artifact(make_mlflow_artifact_uri(
-        pipeline_experiment_bag["mlflow_experiment_id"]))
+    create_link_artifact(make_mlflow_artifact_uri(pipeline_experiment_bag["mlflow_experiment_id"]))
 
     # Logging setup
     run_logger = get_run_logger()
@@ -231,41 +235,27 @@ def automated_pipeline(
     ######################################
     # Data Extraction
     ######################################
-    # if reextract:
-    #     run_logger.info("Re-extracting data from database")
-    #     df = data_extraction(db=db, socio_eco_data_file=socio_eco_data_file)
-    #     # TODO
-    #     # Empty dict since fresh extraction
-    #     ds_extract_info = {}
-    # else:
-    #     run_logger.info("Using DVC to load extraction dataframe")
-    #     df, ds_extract_info = load_extraction_from_dvc(dvc_block=dvc_block, dvc_remote=dvc_remote)
-
-
+    df = raw_data_extraction(curr_data_bucket) # "weather_dataset_raw_development.csv"
+    
+    # Data ingestion
     dataset_ingestion_transformer = make_dataset_ingestion_transformer(
         target_choice, oldnames_newnames_dict)
-    ingested_df = data_extraction(weather_db_file, dataset_ingestion_transformer)
-
+    ingested_df = dataset_ingestion_transformer.transform(df)
     ######################################
     # Data Validation
     ######################################
-    # TODO: create version deepchecks of data_validation
-    # validation_passed = data_validation(ingested_df) # Implements great expectation
+    # TODO: create  version deepchecks
+    # validation_passed = data_validation(ingested_df)
     # if not validation_passed:
     #     run_logger.warning('Failed data validation. See artifacts or GX UI for more details.')
 
     ######################################
-    # Data preparation: returns dataset with splits train, val, test
+    # Data preparation
     ######################################
 
-    remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
-    target_creation_transformer = make_target_creation_transformer(target_choice)
-    dataset = data_preparation(
-        ingested_df,
-        remove_horizonless_rows_transformer,
-        target_creation_transformer,
-    )
-    ds_info = {}
+    # TODO: START FROM HERE, ON  FRIDAY
+
+    dataset, ds_info = prep_data_construction(ref_data_bucket, curr_data_bucket)
 
     ######################################
     # Training with hyperparameter search
@@ -287,41 +277,52 @@ def automated_pipeline(
     # (we used a tag in MLFlow. We set the tag key to "prefect_run_name")
     best_run = get_best_run(
         experiment=current_experiment,
-        filter_string="tags.prefect_run_name = '{}'".format(
-            pipeline_experiment_bag["prefect_run_name"]),
+        filter_string="tags.prefect_run_name = '{}'".format(pipeline_experiment_bag["prefect_run_name"]),
     )
-
-    best_feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run)
-
-    # TODO(ERL)
-    # Transition to staging
-    # Load from mlflow
-    # Model validation with deepchecks and transtition to prod if passed
 
     ######################################
     # Scoring
     ######################################
+    best_feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run)
     score_dict = score(
         metric=metric,
         transformer=best_feat_eng_obj,
-        model=best_classifier_obj,
-        dataset=dataset,
+        model=best_classifier_obj, 
+        dataset=dataset, 
+        
     )
+    run_logger.info(score_dict)
 
+    
     ######################################
-    # Model saving
+    # Model register
     ######################################
-    # TODO: Think of logic to save
     save_model = True
-    saved_model_name = "random_forest_from_automated_pipeline"
+    saved_model_name = "random_forest_from_full_pipeline"
     if save_model:
         run_logger.info("Saving model named: %s", saved_model_name)
-        register_model_from_run(current_experiment.tracking_server_uri,
-                                best_run, saved_model_name)
-
+        register_model_from_run(current_experiment.tracking_server_uri, best_run, saved_model_name)
+        model_version = get_model_version_by_stage(current_experiment.tracking_server_uri, saved_model_name, "None")
+        transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version) 
+    
+    ######################################
+    # Model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
+    ######################################
+    result = validate_model(dataset, best_feat_eng_obj, best_classifier_obj, best_run.info.run_id)
+    run_logger.info(f" {len(result.get_passed_checks())} of Model tests are passed.")
+    run_logger.info(f" {len(result.get_not_passed_checks())} of Model tests are failed.")
+    run_logger.info(f" {len(result.get_not_ran_checks())} of Model tests are not runned.")
+    if result.passed(fail_if_check_not_run=True, fail_if_warning=True):
+        run_logger.info("The Model validation succeeds")
+        tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "PASSED"})
+    else:
+        run_logger.info("The Model validation fails")
+        tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
     ######################################
     # Model deployment
     ######################################
-    should_deploy = False
+    should_deploy = True
     if should_deploy:
-        deploy()
+        transition_model_to_production(current_experiment.tracking_server_uri, saved_model_name, model_version)
+        model_info = deploy()
+        run_logger.info(model_info)
