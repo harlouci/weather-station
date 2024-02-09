@@ -9,5 +9,7 @@ Our goal is to predict the weather fours in advance. More specicaly if it's will
 # Install
 
 ```
-pip install -r requirements/data-science.requirements.txt -e .
+conda create -n weather python=3.11
+conda activate weather
+pip install -e .[all]
 ```
