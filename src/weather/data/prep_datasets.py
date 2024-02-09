@@ -1,8 +1,8 @@
 """Includes functions to prepare datasets for ML applications."""
-
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import pandas as pd
 
@@ -48,7 +48,7 @@ class Dataset:
         self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
         self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
         self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
-        
+
     # TODO: remove this commented out chunks
     # def apply_transformer(self, transformer):
     #     self.train_x = transformer.transform(self.train_x)
@@ -142,14 +142,15 @@ def prepare_binary_classfication_tabular_data_from_splits(
     """
     dataset = None
     for fname in os.listdir(csv_dirpath):
-        if not fname.endswith('.csv'): continue
+        if not fname.endswith(".csv"):
+            continue
         fpath = os.path.join(csv_dirpath, fname)
         data_frame = pd.read_csv(fpath)
-        if dataset != None:
-            dataset.merge_in(prepare_binary_classfication_tabular_data(data_frame, predictors, predicted, 
+        if dataset is not None:
+            dataset.merge_in(prepare_binary_classification_tabular_data(data_frame, predictors, predicted,
                                                                        pos_neg_pair, splits_sizes, seed))
         else:
-            dataset = prepare_binary_classfication_tabular_data(data_frame, predictors, predicted, 
+            dataset = prepare_binary_classification_tabular_data(data_frame, predictors, predicted,
                                                                 pos_neg_pair, splits_sizes, seed)
     return dataset
 
@@ -161,7 +162,7 @@ def prepare_and_merge_splits_to_dataset(
     target_creation_transformer,
     splits_sizes: Tuple[float] = (0.7, 0.1, 0.2),
 ) -> Dataset:
-    """Preprocess `dataframe`, the unique item of `dataframes`, aka ingest it, create the target in `created_target`, 
+    """Preprocess `dataframe`, the unique item of `dataframes`, aka ingest it, create the target in `created_target`,
     remove horizonless rows to predictors in `transformed_data`, split both  `created_target` and `transformed_data`,
     wrap them in dataset `ds`. Then merge in `ds` with `dataset`."""
     for dataframe in dataframes:

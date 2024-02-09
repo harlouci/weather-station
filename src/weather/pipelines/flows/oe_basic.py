@@ -1,22 +1,22 @@
 import logging
 import os
 import tempfile
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 import joblib
-import mlflow
 import prefect.context
 import prefect.runtime.flow_run
 import sklearn.pipeline
+from prefect import flow, task
+from prefect.artifacts import create_link_artifact
+from prefect.logging import get_run_logger
+from sklearn.ensemble import RandomForestClassifier
 from weather.data.prep_datasets import Dataset
 from weather.models.skl_tracked_train_models import SKLModelWrapper
 from weather.pipelines.common import (
-    build_transformer,
     data_preparation,
-    data_validation,
     deploy,
-    fit_transformer,
     log_metrics,
     make_mlflow_artifact_uri,
     score,
@@ -24,28 +24,26 @@ from weather.pipelines.common import (
 )
 from weather.pipelines.definitions import (
     MLFLOW_TRACKING_URI,
-    feature_names,
     metric,
     oldnames_newnames_dict,
+    feature_names,
     target_choice,
 )
 from weather.pipelines.flows.data_extraction import data_extraction
 from weather.transformers.skl_transformer_makers import (
     make_dataset_ingestion_transformer,
-    make_predictors_feature_engineering_transformer,
     make_remove_horizonless_rows_transformer,
     make_target_creation_transformer,
+    make_predictors_feature_engineering_transformer,
 )
+
+import mlflow
 from mlflow.models import infer_signature
-from prefect import flow, task
-from prefect.artifacts import create_link_artifact
-from prefect.logging import get_run_logger
-from sklearn.ensemble import RandomForestClassifier
 
 
 @task
-def train(dataset: Dataset, 
-          model: Any, 
+def train(dataset: Dataset,
+          model: Any,
           predictors_feature_engineering_transformer: sklearn.pipeline.Pipeline
 ):
     x = predictors_feature_engineering_transformer.fit_transform(dataset.train_x)
@@ -67,7 +65,7 @@ def save_model_mlflow(
         mlflow.pyfunc.log_model(
             artifact_path="classifier",
             python_model=SKLModelWrapper(),
-            artifacts={"predictors_feature_eng_path": tmp_fpath("predictors_feature_eng_pipeline.joblib"), 
+            artifacts={"predictors_feature_eng_path": tmp_fpath("predictors_feature_eng_pipeline.joblib"),
                        "model_path": tmp_fpath("model.joblib")},
             input_example=dataset.train_x.sample(3),
             signature=infer_signature(
@@ -79,10 +77,8 @@ def save_model_mlflow(
 
 @flow(name="orchestrated-experiment-basic", on_completion=[stop_mlflow_run])
 def complete_flow(
-    classifier_params: dict = None,
-    #clustering_params: dict = None,
-    weather_db_file: str | Path = None, 
-    #socio_eco_data_file: str | None = None,
+    classifier_params: dict|None = None,
+    weather_db_file: str | Path | None = None,
     mlflow_experiment_name: str = "Default",
 ):
     #
@@ -91,6 +87,7 @@ def complete_flow(
     # MLFlow setup
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     experiment = mlflow.set_experiment(experiment_name=mlflow_experiment_name)
+    # TODO: check this absence of context manager and solitary run
     run = mlflow.start_run(run_name=prefect.runtime.flow_run.get_name())
 
     # Create a configuration object we can pass around
@@ -165,10 +162,14 @@ def complete_flow(
     # Training
     #
     # df_train_transformed = transform_data(dataset, data_transformer, stage='train')
+    predictors_feature_engineering_transformer = make_predictors_feature_engineering_transformer(
+        feature_names,
+        target_choice,
+    )
     classifier_obj = RandomForestClassifier(**classifier_params)
     model = train(
-        dataset=dataset, 
-        model=classifier_obj, 
+        dataset=dataset,
+        model=classifier_obj,
         data_transformer=predictors_feature_engineering_transformer)
 
     #
@@ -191,8 +192,8 @@ def complete_flow(
     if save_model:
         run_logger.info("Saving model named: %s", saved_model_name)
         save_model_mlflow(
-            dataset, 
-            predictors_feature_engineering_transformer, 
+            dataset,
+            predictors_feature_engineering_transformer,
             classifier_obj,
         )
 

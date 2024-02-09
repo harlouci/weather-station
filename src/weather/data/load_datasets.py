@@ -5,6 +5,7 @@ from typing import Tuple
 import pandas as pd
 import yaml
 from weather.data.prep_datasets import Dataset
+
 #import dvc.api
 
 
@@ -106,12 +107,12 @@ def load_dataset_from_localfs(
     dataset_info = {}
 
     d = Dataset(
-        train_x=pd.read_csv(f"{data_dir}/splits/train_x.csv", sep=';'),
-        val_x=pd.read_csv(f"{data_dir}/splits/val_x.csv", sep=';'),
-        test_x=pd.read_csv(f"{data_dir}/splits/test_x.csv", sep=';'),
-        train_y=pd.read_csv(f"{data_dir}/splits/train_y.csv", sep=';').iloc[:, 0],
-        val_y=pd.read_csv(f"{data_dir}/splits/val_y.csv", sep=';').iloc[:, 0],
-        test_y=pd.read_csv(f"{data_dir}/splits/test_y.csv", sep=';').iloc[:, 0]
+        train_x=pd.read_csv(f"{data_dir}/splits/train_x.csv", sep=";"),
+        val_x=pd.read_csv(f"{data_dir}/splits/val_x.csv", sep=";"),
+        test_x=pd.read_csv(f"{data_dir}/splits/test_x.csv", sep=";"),
+        train_y=pd.read_csv(f"{data_dir}/splits/train_y.csv", sep=";").iloc[:, 0],
+        val_y=pd.read_csv(f"{data_dir}/splits/val_y.csv", sep=";").iloc[:, 0],
+        test_y=pd.read_csv(f"{data_dir}/splits/test_y.csv", sep=";").iloc[:, 0]
     )
 
     return d, dataset_info
@@ -121,16 +122,16 @@ def load_prep_dataset_from_minio(
     minio_client,
     data_bucket: str = "reference-data",
 ) -> Dataset:
-    
+
     d = Dataset(
-        train_x=pd.read_csv(minio_client.get_object(data_bucket, "train_x.csv"), sep=';'), # pd.DataFrame
-        val_x=pd.read_csv(minio_client.get_object(data_bucket, "val_x.csv"), sep=';'),
-        test_x=pd.read_csv(minio_client.get_object(data_bucket, "test_x.csv"), sep=';'),
-        train_y=pd.read_csv(minio_client.get_object(data_bucket, "train_y.csv"), sep=';').iloc[:, 0], # pd.Series
-        val_y=pd.read_csv(minio_client.get_object(data_bucket, "val_y.csv"), sep=';').iloc[:, 0],
-        test_y=pd.read_csv(minio_client.get_object(data_bucket, "test_y.csv"), sep=';').iloc[:, 0],
+        train_x=pd.read_csv(minio_client.get_object(data_bucket, "train_x.csv"), sep=";"), # pd.DataFrame
+        val_x=pd.read_csv(minio_client.get_object(data_bucket, "val_x.csv"), sep=";"),
+        test_x=pd.read_csv(minio_client.get_object(data_bucket, "test_x.csv"), sep=";"),
+        train_y=pd.read_csv(minio_client.get_object(data_bucket, "train_y.csv"), sep=";").iloc[:, 0], # pd.Series
+        val_y=pd.read_csv(minio_client.get_object(data_bucket, "val_y.csv"), sep=";").iloc[:, 0],
+        test_y=pd.read_csv(minio_client.get_object(data_bucket, "test_y.csv"), sep=";").iloc[:, 0],
     )
-    
+
     return d
 
 
@@ -147,6 +148,6 @@ def load_raw_datasets_from_minio(
             obj.object_name,
         )
         df = pd.read_csv(obj)
-        ds_info[name] = len(df) 
-        dataframes.append(df)   
+        ds_info[name] = len(df)
+        dataframes.append(df)
     return dataframes, ds_info

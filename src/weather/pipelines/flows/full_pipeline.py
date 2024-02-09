@@ -1,33 +1,38 @@
 import logging
 import warnings
+
 warnings.filterwarnings("ignore")
-import mlflow
 from time import time
+from typing import Callable
+
+import mlflow
 import prefect.context
 import prefect.runtime.flow_run
+from prefect import flow, task
+from prefect.artifacts import create_link_artifact
+from prefect.logging import get_run_logger
+from sklearn.ensemble import RandomForestClassifier
 from weather.data.prep_datasets import Dataset
 from weather.mlflow.registry import (
-    register_model_from_run,
     get_model_version_by_stage,
+    register_model_from_run,
     transition_model_to_production,
     transition_model_to_staging,
-    tag_model,
 )
 from weather.mlflow.tracking import (
     Experiment,
     get_best_run,
 )
-
 from weather.pipelines.common import (
     #validate_model,  # deepchecks
     #data_validation, # deepchecks
     deploy,
     fit_transformer,
     load_artifacts_from_mlflow,
-    raw_data_extraction, 
-    prep_data_construction,
     log_metrics,
     make_mlflow_artifact_uri,
+    prep_data_construction,
+    raw_data_extraction,
     score,
     stop_mlflow_run,
 )
@@ -38,17 +43,12 @@ from weather.pipelines.definitions import (
     oldnames_newnames_dict,
     target_choice,
 )
-from weather.pipelines.flows.data_extraction import data_extraction
 from weather.transformers.skl_transformer_makers import (
     make_dataset_ingestion_transformer,
     make_predictors_feature_engineering_transformer,
     make_remove_horizonless_rows_transformer,
     make_target_creation_transformer,
 )
-from prefect import flow, task
-from prefect.artifacts import create_link_artifact
-from prefect.logging import get_run_logger
-from sklearn.ensemble import RandomForestClassifier
 
 
 # N.B.: Note that we removed the feature_names
@@ -240,7 +240,7 @@ def automated_pipeline(
     # Data Extraction
     ######################################
     df = raw_data_extraction(curr_data_bucket) # "weather_dataset_raw_development.csv"
-    
+
     # Data ingestion
     dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
     ingested_df = dataset_ingestion_transformer.transform(df) # TODO: orphan
@@ -260,13 +260,13 @@ def automated_pipeline(
     target_creation_transformer = make_target_creation_transformer(target_choice)
 
     dataset, ds_info = prep_data_construction(           # This dataset is the new dev, consisting of dev + 2011-01-01_prod
-        ref_data_bucket,                                 # bucket dev 
+        ref_data_bucket,                                 # bucket dev
         curr_data_bucket,                                # buckets 2011-01-01-prod, 2011-01-02-prod,...
-        dataset_ingestion_transformer,        
+        dataset_ingestion_transformer,
         remove_horizonless_rows_transformer,
         target_creation_transformer,
-    ) 
-                                                                     # 
+    )
+                                                                     #
     ######################################
     # Training with hyperparameter search
     #####################################
@@ -295,14 +295,14 @@ def automated_pipeline(
     ######################################
     best_feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run)
     score_dict = score(
-        model=best_classifier_obj, 
+        model=best_classifier_obj,
         dataset=dataset,
         transformer=best_feat_eng_obj,
         metric=metric,
     )
     run_logger.info(score_dict)
 
-    # TODO: HERE BELOW 
+    # TODO: HERE BELOW
     ######################################
     # Model register
     ######################################
@@ -312,8 +312,8 @@ def automated_pipeline(
         run_logger.info("Saving model named: %s", saved_model_name)
         register_model_from_run(current_experiment.tracking_server_uri, best_run, saved_model_name)
         model_version = get_model_version_by_stage(current_experiment.tracking_server_uri, saved_model_name, "None")
-        transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version) 
-    
+        transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version)
+
     ######################################
     # Model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
     ######################################

@@ -1,15 +1,14 @@
 import os
 
+from sklearn.metrics import f1_score
 from weather.transformers.skl_transformer_makers import (
     FeatureNames,
     TargetChoice,
 )
-    
-from sklearn.metrics import f1_score
 
 # TODO: DRY
 oldnames_newnames_dict = {
-    "Temperature_C": "Temperature", 
+    "Temperature_C": "Temperature",
     "Apparent_Temperature_C": "Apparent_temperature",
     "Wind_speed_kmph": "Wind_speed",
     "Wind_bearing_degrees": "Wind_bearing",

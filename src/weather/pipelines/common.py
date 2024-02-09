@@ -1,25 +1,19 @@
-import os
 import warnings
 
 warnings.filterwarnings("ignore")
 import tempfile
-from typing import Dict, Tuple
+from typing import Dict
 
 import joblib
 import pandas as pd
-import prefect.runtime.flow_run
 import requests
 import sklearn.pipeline
+
 #from great_expectations.checkpoint.checkpoint import CheckpointResult
 #from great_expectations.data_context import AbstractDataContext
-#from minio import Minio
+from minio import Minio
 from prefect import task
-from prefect.artifacts import create_markdown_artifact
-from prefect.filesystems import RemoteFileSystem
-from sklearn.cluster import KMeans
 from weather.data.load_datasets import (
-    extract_dataset_info,
-    #get_extraction_url_from_dvc,
     load_prep_dataset_from_minio,
     load_raw_datasets_from_minio,
 )
@@ -28,12 +22,13 @@ from weather.data.prep_datasets import (
     prepare_and_merge_splits_to_dataset,
     prepare_binary_classification_tabular_data,
 )
+
 #from weather.features.skl_build_features import AdvFeatureNames, make_advanced_data_transformer
 #from weather.gx.builders import get_context
 #from weather.gx.runners import run_pipeline_checkpoint_from_df
-from weather.helpers.utils import clean_temporary_dir, create_temporary_dir_if_not_exists
 from weather.mlflow.tracking import get_raw_artifacts_from_run
 from weather.models.skl_train_models import score_evaluation_dict
+
 #from weather.models.skl_validate_models import min_perf_validation
 from weather.pipelines.definitions import (
     MINIO_ACCESS_KEY,
@@ -54,7 +49,7 @@ def stop_mlflow_run(flow, flow_run, state):
     mlflow.end_run()
 
 
-def make_mlflow_artifact_uri(experiment_id: str = None) -> str:
+def make_mlflow_artifact_uri(experiment_id: str|None = None) -> str:
     """Generates the URI for the experiment
 
     Not that necessary.
@@ -88,15 +83,15 @@ def log_metrics(score_dict: Dict[str, float|str]):
     # mlflow.log_metrics(metrics)
 
 
-@task
-def load_extraction_from_dvc(dvc_block: RemoteFileSystem, dvc_remote: str = None) -> Tuple[pd.DataFrame, dict]:
-    url = get_extraction_url_from_dvc(remote=dvc_remote)
-    with dvc_block.filesystem.open(url, "rb") as f:
-        df_extract = pd.read_csv(f, sep=";")
+# @task
+# def load_extraction_from_dvc(dvc_block: RemoteFileSystem, dvc_remote: str|None = None) -> Tuple[pd.DataFrame, dict]:
+#     url = get_extraction_url_from_dvc(remote=dvc_remote)
+#     with dvc_block.filesystem.open(url, "rb") as f:
+#         df_extract = pd.read_csv(f, sep=";")
 
-    dvc_info = extract_dataset_info(data_dir="data", with_dvc_info=True, with_vcs_info=False)
+#     dvc_info = extract_dataset_info(data_dir="data", with_dvc_info=True, with_vcs_info=False)
 
-    return df_extract, dvc_info
+#     return df_extract, dvc_info
 
 
 @task
@@ -200,24 +195,24 @@ def load_artifacts_from_mlflow(run):
         )
         return joblib.load(best_feat_eng_obj), joblib.load(best_classifier_obj)
 
-@task
-def validate_model(dataset, data_transformer, classifier, run_id):
-    cat_features = person_info_cols_cat + cat_cols_wo_customer
-    result = min_perf_validation(dataset, data_transformer, classifier, cat_features)
+# @task
+# def validate_model(dataset, data_transformer, classifier, run_id):
+#     cat_features = person_info_cols_cat + cat_cols_wo_customer
+#     result = min_perf_validation(dataset, data_transformer, classifier, cat_features)
 
-    tmp_dir = create_temporary_dir_if_not_exists()
-    tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
+#     tmp_dir = create_temporary_dir_if_not_exists()
+#     tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
 
-    with open(tmp_fpath("deepchecks_report.json"), "w") as f:
-        f.write(result.to_json())
-    result.save_as_html(tmp_fpath("deepchecks_report.html"))
+#     with open(tmp_fpath("deepchecks_report.json"), "w") as f:
+#         f.write(result.to_json())
+#     result.save_as_html(tmp_fpath("deepchecks_report.html"))
 
-    with mlflow.start_run(run_id=run_id) as run:
-        mlflow.log_artifacts("tmp", artifact_path="tests")
+#     with mlflow.start_run(run_id=run_id) as run:
+#         mlflow.log_artifacts("tmp", artifact_path="tests")
 
-    clean_temporary_dir()
+#     clean_temporary_dir()
 
-    return result
+#     return result
 
 @task
 def deploy():
