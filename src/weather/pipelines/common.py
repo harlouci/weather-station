@@ -17,12 +17,12 @@ from prefect import task
 from prefect.artifacts import create_markdown_artifact
 from prefect.filesystems import RemoteFileSystem
 from sklearn.cluster import KMeans
-# from weather.data.load_datasets import (
-#     extract_dataset_info,
-#     get_extraction_url_from_dvc,
-#     load_prep_dataset_from_minio,
-#     load_raw_datasets_from_minio,
-# )
+from weather.data.load_datasets import (
+    extract_dataset_info,
+    #get_extraction_url_from_dvc,
+    load_prep_dataset_from_minio,
+    load_raw_datasets_from_minio,
+)
 from weather.data.prep_datasets import (
     Dataset,
     # prepare_and_merge_splits_to_dataset,
@@ -104,26 +104,26 @@ def load_extraction_from_dvc(dvc_block: RemoteFileSystem, dvc_remote: str = None
     return df_extract, dvc_info
 
 
-# @task
-# def raw_data_extraction(curr_data_bucket: str) -> pd.DataFrame:
-#     minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
-#                          secret_key=MINIO_SECRET_KEY, secure=False)
-#     dataframes, _ = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
-#     raw_data = pd.concat(dataframes, ignore_index=True)
-#     return raw_data
+@task
+def raw_data_extraction(curr_data_bucket: str) -> pd.DataFrame:
+    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
+                         secret_key=MINIO_SECRET_KEY, secure=False)
+    dataframes, _ = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
+    raw_data = pd.concat(dataframes, ignore_index=True)
+    return raw_data
 
-# @task
-# def prep_data_construction(ref_data_bucket: str, curr_data_bucket: str) -> pd.DataFrame:
-#     minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
-#                          secret_key=MINIO_SECRET_KEY, secure=False)
-#     dataset = load_prep_dataset_from_minio(minio_client, ref_data_bucket)
-#     dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
-#     predictors = list(COLUMNS)
-#     predictors.remove("curr_outcome")
-#     predictors.remove("comm_duration")
-#     predicted = "curr_outcome"
-#     dataset = prepare_and_merge_splits_to_dataset(dataset, dataframes, predictors, predicted, pos_neg_pair=("yes", "no"))
-#     return dataset, ds_info
+@task
+def prep_data_construction(ref_data_bucket: str, curr_data_bucket: str) -> pd.DataFrame:
+    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
+                         secret_key=MINIO_SECRET_KEY, secure=False)
+    dataset = load_prep_dataset_from_minio(minio_client, ref_data_bucket)
+    dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
+    predictors = list(COLUMNS)
+    predictors.remove("curr_outcome")
+    predictors.remove("comm_duration")
+    predicted = "curr_outcome"
+    dataset = prepare_and_merge_splits_to_dataset(dataset, dataframes, predictors, predicted, pos_neg_pair=("yes", "no"))
+    return dataset, ds_info
 
 
 @task
@@ -139,13 +139,13 @@ def data_preparation(
     return dataset
 
 
-@task
-def build_transformer(params: dict) -> sklearn.pipeline.Pipeline:
-    adv_feature_names = AdvFeatureNames(
-        person_info_cols_num, person_info_cols_cat, num_cols_wo_customer, cat_cols_wo_customer
-    )
-    transformer = make_advanced_data_transformer(adv_feature_names, KMeans, params)
-    return transformer
+# @task
+# def build_transformer(params: dict) -> sklearn.pipeline.Pipeline:
+#     adv_feature_names = AdvFeatureNames(
+#         person_info_cols_num, person_info_cols_cat, num_cols_wo_customer, cat_cols_wo_customer
+#     )
+#     transformer = make_advanced_data_transformer(adv_feature_names, KMeans, params)
+#     return transformer
 
 
 @task
