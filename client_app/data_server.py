@@ -1,12 +1,13 @@
-import requests
-from data import Item
-import pandas as pd
-from timeloop import Timeloop
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
 
+import pandas as pd
+import requests
 from dotenv import load_dotenv
+from timeloop import Timeloop
+
+from data import Item
 
 # Load environment variables from .env file
 load_dotenv("data.env")
@@ -45,9 +46,9 @@ tl = Timeloop()
 def send_new_data():
     row = pop_first_row(df)
     if row is None:
-        print('no data to send anymore!')
-        return None
-    row = row.fillna('')
+        print("no data to send anymore!")
+        return
+    row = row.fillna("")
     item_data = Item(**row.to_dict())
 
     # Send a POST request to the API

@@ -1,40 +1,40 @@
+import warnings
+
 import joblib
 import pandas as pd
-import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 from pathlib import Path
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
-    ConfusionMatrixDisplay,
     f1_score,
     precision_score,
     recall_score,
 )
-from sklearn.svm import LinearSVC, SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier
-
-from weather.transformers.skl_transformer_makers import (
-    FeatureNames,
-    TargetChoice,
-    make_dataset_ingestion_transformer,
-    make_target_creation_transformer,
-    make_remove_horizonless_rows_transformer,
-    make_predictors_feature_engineering_transformer,
-)
 from weather.data.prep_datasets import (
     prepare_binary_classification_tabular_data,
     transform_dataset_and_create_target,
 )
 from weather.helpers.utils import camel_to_snake
 from weather.models.skl_train_models import (
-    score_evaluation,
-    print_accuracy_results,
-    confusion_matrix_evaluation,
     confusion_matrix_display,
+    confusion_matrix_evaluation,
+    score_evaluation,
 )
+from weather.transformers.skl_transformer_makers import (
+    FeatureNames,
+    TargetChoice,
+    make_dataset_ingestion_transformer,
+    make_predictors_feature_engineering_transformer,
+    make_remove_horizonless_rows_transformer,
+    make_target_creation_transformer,
+)
+
 data_dir =  Path.cwd().parent / "data"
 models_dir = Path.cwd().parent / "models"
 models_dir.mkdir(exist_ok=True)
@@ -74,7 +74,7 @@ target_creation_transformer = make_target_creation_transformer(target_choice)
 predictors_feature_engineering_transformer = make_predictors_feature_engineering_transformer(feature_names, target_choice)
 
 # read the data
-df = pd.read_csv(data_dir / 'weather_dataset_raw_development.csv')
+df = pd.read_csv(data_dir / "weather_dataset_raw_development.csv")
 df.head(1)
 
 # Transform the dataset and split it
@@ -142,5 +142,5 @@ joblib.dump(dataset_ingestion_transformer, model_subdir / "dataset_ingestion_pip
 joblib.dump(remove_horizonless_rows_transformer, model_subdir / "remove_horizonless_rows_pipeline.pkl")
 joblib.dump(target_creation_transformer, model_subdir / "target_creation_pipeline.pkl")
 joblib.dump(predictors_feature_engineering_transformer, model_subdir / "predictors_feature_eng_pipeline.pkl")
-joblib.dump(model, model_subdir / "model.pkl");
+joblib.dump(model, model_subdir / "model.pkl")
 
