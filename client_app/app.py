@@ -94,7 +94,7 @@ async def predict(item: Item):
     new_day = new_date.day
 
     if previous_day is not None and new_day != previous_day:
-        save_current_data(current_df, current_predictions_sr, current_predictor, current_ground_truth_sr, new_date)
+        save_current_data(current_df, current_predictions_sr, current_predictor, current_ground_truth_sr, previous_day)
         current_df, current_predictions_sr, current_ground_truth_sr, current_predictor = None, None, None, None
 
 
