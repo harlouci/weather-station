@@ -3,8 +3,8 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # This image must have prefect in it
-COPY requirements/data-science.requirements.txt /app/
-RUN pip install --no-cache-dir -r data-science.requirements.txt
+COPY requirements/data-science-deploy.requirements.txt /app/
+RUN pip install --no-cache-dir -r data-science-deploy.requirements.txt
 COPY setup.cfg setup.py pyproject.toml /app/
 COPY src /app/src
 RUN pip install --no-cache-dir --no-deps .
