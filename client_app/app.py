@@ -51,15 +51,6 @@ def predict_df(previous_item_df, new_item_df):
     return y[-1], result_data.head(-1)
 
 
-
-current_df = None
-current_predictions_sr = None
-current_ground_truth_sr = None
-current_predictor = None
-previous_item_df = pd.read_csv(data_folder / "weather_dataset_raw_development.csv")[-1:]
-previous_day = None
-
-
 def save_current_data(current_df, current_pred, current_predictor, current_ground_truth_sr, date):
     if current_df is None:
         return
@@ -80,6 +71,18 @@ def save_current_data(current_df, current_pred, current_predictor, current_groun
 
 def get_date(current_df):
     return pd.to_datetime(current_df["Timestamp"], utc=True)[0]
+
+
+
+current_df = None
+current_predictions_sr = None
+current_ground_truth_sr = None
+current_predictor = None
+previous_item_df = pd.read_csv(data_folder / "weather_dataset_raw_development.csv")[-1:]
+previous_day = None
+
+
+
 
 # Create a POST endpoint to receive JSON data and return a response
 @app.post("/predict/")
