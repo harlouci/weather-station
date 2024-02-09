@@ -80,6 +80,7 @@ current_ground_truth_sr = None
 current_predictor = None
 previous_item_df = pd.read_csv(data_folder / "weather_dataset_raw_development.csv")[-1:]
 previous_day = None
+previous_date = None
 
 
 
@@ -87,14 +88,14 @@ previous_day = None
 # Create a POST endpoint to receive JSON data and return a response
 @app.post("/predict/")
 async def predict(item: Item):
-    global current_df, current_predictions_sr, current_ground_truth_sr, previous_item_df, previous_day, current_predictor
+    global current_df, current_predictions_sr, current_ground_truth_sr, previous_item_df, previous_day, current_predictor, previous_date
 
     new_item_df = json_to_item_df(item.dict())
     new_date = get_date(new_item_df)
     new_day = new_date.day
 
     if previous_day is not None and new_day != previous_day:
-        save_current_data(current_df, current_predictions_sr, current_predictor, current_ground_truth_sr, previous_day)
+        save_current_data(current_df, current_predictions_sr, current_predictor, current_ground_truth_sr, previous_date)
         current_df, current_predictions_sr, current_ground_truth_sr, current_predictor = None, None, None, None
 
 
@@ -107,6 +108,7 @@ async def predict(item: Item):
     current_predictor = update_current_data(current_predictor, predictor)
     previous_item_df = new_item_df
     previous_day = new_day
+    previous_date = new_date
 
     if y==1:
         if SEND_MESSAGE:
