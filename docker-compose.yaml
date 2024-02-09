@@ -163,7 +163,7 @@ services:
     command:
       - python
       - -m
-      - bank_marketing.pipelines.for_release.serve_full_pipeline
+      - weather.pipelines.for_release.serve_full_pipeline
     working_dir: / # Note this is necessary because of Prefect's checks
     environment:
       - PREFECT_API_URL=http://host.docker.internal:4200/api
