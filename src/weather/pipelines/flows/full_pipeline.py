@@ -6,16 +6,21 @@ from time import time
 import prefect.context
 import prefect.runtime.flow_run
 from weather.data.prep_datasets import Dataset
-from weather.mlflow.registry import register_model_from_run
-from weather.mlflow.tracking import Experiment
-from weather.mlflow.tracking import get_best_run
-from weather.mlflow.registry import get_model_version_by_stage
-from weather.mlflow.registry import transition_model_to_production
-from weather.mlflow.registry import transition_model_to_staging
+from weather.mlflow.registry import (
+    register_model_from_run,
+    get_model_version_by_stage,
+    transition_model_to_production,
+    transition_model_to_staging,
+    tag_model,
+)
+from weather.mlflow.tracking import (
+    Experiment,
+    get_best_run,
+)
+
 from weather.pipelines.common import (
-    build_transformer,
-    validate_model,
-    data_validation,
+    #validate_model,  # deepchecks
+    #data_validation, # deepchecks
     deploy,
     fit_transformer,
     load_artifacts_from_mlflow,
@@ -26,7 +31,6 @@ from weather.pipelines.common import (
     score,
     stop_mlflow_run,
 )
-from weather.mlflow.registry import tag_model
 from weather.pipelines.definitions import (
     MLFLOW_TRACKING_URI,
     feature_names,
@@ -238,9 +242,8 @@ def automated_pipeline(
     df = raw_data_extraction(curr_data_bucket) # "weather_dataset_raw_development.csv"
     
     # Data ingestion
-    dataset_ingestion_transformer = make_dataset_ingestion_transformer(
-        target_choice, oldnames_newnames_dict)
-    ingested_df = dataset_ingestion_transformer.transform(df)
+    dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
+    ingested_df = dataset_ingestion_transformer.transform(df) # TODO: orphan
     ######################################
     # Data Validation
     ######################################
@@ -253,10 +256,17 @@ def automated_pipeline(
     # Data preparation
     ######################################
 
-    # TODO: START FROM HERE, ON  FRIDAY
+    remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
+    target_creation_transformer = make_target_creation_transformer(target_choice)
 
-    dataset, ds_info = prep_data_construction(ref_data_bucket, curr_data_bucket)
-
+    dataset, ds_info = prep_data_construction(           # This dataset is the new dev, consisting of dev + 2011-01-01_prod
+        ref_data_bucket,                                 # bucket dev 
+        curr_data_bucket,                                # buckets 2011-01-01-prod, 2011-01-02-prod,...
+        dataset_ingestion_transformer,        
+        remove_horizonless_rows_transformer,
+        target_creation_transformer,
+    ) 
+                                                                     # 
     ######################################
     # Training with hyperparameter search
     #####################################
@@ -285,15 +295,14 @@ def automated_pipeline(
     ######################################
     best_feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run)
     score_dict = score(
-        metric=metric,
-        transformer=best_feat_eng_obj,
         model=best_classifier_obj, 
-        dataset=dataset, 
-        
+        dataset=dataset,
+        transformer=best_feat_eng_obj,
+        metric=metric,
     )
     run_logger.info(score_dict)
 
-    
+    # TODO: HERE BELOW 
     ######################################
     # Model register
     ######################################
@@ -308,16 +317,16 @@ def automated_pipeline(
     ######################################
     # Model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
     ######################################
-    result = validate_model(dataset, best_feat_eng_obj, best_classifier_obj, best_run.info.run_id)
-    run_logger.info(f" {len(result.get_passed_checks())} of Model tests are passed.")
-    run_logger.info(f" {len(result.get_not_passed_checks())} of Model tests are failed.")
-    run_logger.info(f" {len(result.get_not_ran_checks())} of Model tests are not runned.")
-    if result.passed(fail_if_check_not_run=True, fail_if_warning=True):
-        run_logger.info("The Model validation succeeds")
-        tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "PASSED"})
-    else:
-        run_logger.info("The Model validation fails")
-        tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
+    # result = validate_model(dataset, best_feat_eng_obj, best_classifier_obj, best_run.info.run_id)
+    # run_logger.info(f" {len(result.get_passed_checks())} of Model tests are passed.")
+    # run_logger.info(f" {len(result.get_not_passed_checks())} of Model tests are failed.")
+    # run_logger.info(f" {len(result.get_not_ran_checks())} of Model tests are not runned.")
+    # if result.passed(fail_if_check_not_run=True, fail_if_warning=True):
+    #     run_logger.info("The Model validation succeeds")
+    #     tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "PASSED"})
+    # else:
+    #     run_logger.info("The Model validation fails")
+    #     tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
     ######################################
     # Model deployment
     ######################################

@@ -40,15 +40,16 @@ class Dataset:
         self.train_val_x = pd.concat([self.train_x, self.val_x])
         self.train_val_y = pd.concat([self.train_y, self.val_y])
 
-    # TODO: remove this commented out chunks
-    # def merge_in(self, dataset):
-    #     self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
-    #     self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
-    #     self.test_x = pd.concat([self.test_x, dataset.test_x], axis=0)
-    #     self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
-    #     self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
-    #     self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
 
+    def merge_in(self, dataset):
+        self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
+        self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
+        self.test_x = pd.concat([self.test_x, dataset.test_x], axis=0)
+        self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
+        self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
+        self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
+        
+    # TODO: remove this commented out chunks
     # def apply_transformer(self, transformer):
     #     self.train_x = transformer.transform(self.train_x)
     #     self.val_x = transformer.transform(self.val_x)
@@ -114,4 +115,67 @@ def prepare_binary_classification_tabular_data(
         val_y=splitted_target[1],
         test_y=splitted_target[2],
     )
+    return dataset
+
+def prepare_binary_classfication_tabular_data_from_splits(
+    csv_dirpath: str,
+    predictors: List[str],
+    predicted: str,
+    pos_neg_pair: Tuple[str, str] | None = None,
+    splits_sizes: Tuple[float] = (0.7, 0.1, 0.2),
+    seed: int = 42,
+) -> Dataset:
+    """Prepare the training/validation/test inputs (X) and outputs (y) for binary clasification modeling
+
+    Args:
+    ----
+        csv_dirpath (str): path of the directory of csv files
+        predictors (List[str]): list of predictors column names
+        predicted (str): column name of the predicted outcome
+        pos_neg_pair (Tuple[str,str], optional): groundtruth positive/negative labels. Defaults to None.
+        splits_sizes (List[float], optional): list of relative size portions for training, validation, test data, respectively. Defaults to [0.7,0.1,0.2].
+        seed (int, optional): random seed. Defaults to 42.
+
+    Returns:
+    -------
+        Dataset: datassets for binary classification with training/validation/test splits
+    """
+    dataset = None
+    for fname in os.listdir(csv_dirpath):
+        if not fname.endswith('.csv'): continue
+        fpath = os.path.join(csv_dirpath, fname)
+        data_frame = pd.read_csv(fpath)
+        if dataset != None:
+            dataset.merge_in(prepare_binary_classfication_tabular_data(data_frame, predictors, predicted, 
+                                                                       pos_neg_pair, splits_sizes, seed))
+        else:
+            dataset = prepare_binary_classfication_tabular_data(data_frame, predictors, predicted, 
+                                                                pos_neg_pair, splits_sizes, seed)
+    return dataset
+
+def prepare_and_merge_splits_to_dataset(
+    dataset, # dev dataset
+    dataframes, # e.g. [2011-01-01_raw_prod.df]
+    dataset_ingestion_transformer,
+    remove_horizonless_rows_transformer,
+    target_creation_transformer,
+    splits_sizes: Tuple[float] = (0.7, 0.1, 0.2),
+) -> Dataset:
+    """Preprocess `dataframe`, the unique item of `dataframes`, aka ingest it, create the target in `created_target`, 
+    remove horizonless rows to predictors in `transformed_data`, split both  `created_target` and `transformed_data`,
+    wrap them in dataset `ds`. Then merge in `ds` with `dataset`."""
+    for dataframe in dataframes:
+
+        transformed_data, created_target = transform_dataset_and_create_target(
+            dataframe,
+            dataset_ingestion_transformer,
+            remove_horizonless_rows_transformer,
+            target_creation_transformer,
+        )
+        ds = prepare_binary_classification_tabular_data(
+            transformed_data,
+            created_target,
+            split_size=splits_sizes,
+        )
+        dataset.merge_in(ds)
     return dataset

@@ -25,26 +25,21 @@ from weather.data.load_datasets import (
 )
 from weather.data.prep_datasets import (
     Dataset,
-    # prepare_and_merge_splits_to_dataset,
+    prepare_and_merge_splits_to_dataset,
     prepare_binary_classification_tabular_data,
 )
 #from weather.features.skl_build_features import AdvFeatureNames, make_advanced_data_transformer
 #from weather.gx.builders import get_context
 #from weather.gx.runners import run_pipeline_checkpoint_from_df
 from weather.helpers.utils import clean_temporary_dir, create_temporary_dir_if_not_exists
-#from weather.mlflow.tracking import get_raw_artifacts_from_run
+from weather.mlflow.tracking import get_raw_artifacts_from_run
 from weather.models.skl_train_models import score_evaluation_dict
 #from weather.models.skl_validate_models import min_perf_validation
 from weather.pipelines.definitions import (
-    #COLUMNS,
     MINIO_ACCESS_KEY,
     MINIO_API_HOST,
     MINIO_SECRET_KEY,
     SERVER_API_URL,
-    #cat_cols_wo_customer,
-    #num_cols_wo_customer,
-    #person_info_cols_cat,
-    #person_info_cols_num,
 )
 
 import mlflow
@@ -113,16 +108,24 @@ def raw_data_extraction(curr_data_bucket: str) -> pd.DataFrame:
     return raw_data
 
 @task
-def prep_data_construction(ref_data_bucket: str, curr_data_bucket: str) -> pd.DataFrame:
+def prep_data_construction(
+    ref_data_bucket: str,
+    curr_data_bucket: str,
+    dataset_ingestion_transformer,
+    remove_horizonless_rows_transformer,
+    target_creation_transformer,
+) -> pd.DataFrame:
     minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
                          secret_key=MINIO_SECRET_KEY, secure=False)
-    dataset = load_prep_dataset_from_minio(minio_client, ref_data_bucket)
-    dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
-    predictors = list(COLUMNS)
-    predictors.remove("curr_outcome")
-    predictors.remove("comm_duration")
-    predicted = "curr_outcome"
-    dataset = prepare_and_merge_splits_to_dataset(dataset, dataframes, predictors, predicted, pos_neg_pair=("yes", "no"))
+    dataset = load_prep_dataset_from_minio(minio_client, ref_data_bucket)              # TODO: in "dev", fetch current splitted dataset, ready for training
+    dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket) # in "2011-01-01-prod", fetch 2011-01-01-weather_dataset_raw_production.csv in df
+    dataset = prepare_and_merge_splits_to_dataset(
+        dataset,    # dev dataset
+        dataframes, # [2011-01-01_raw_prod.df]
+        dataset_ingestion_transformer,
+        remove_horizonless_rows_transformer,
+        target_creation_transformer,
+    )
     return dataset, ds_info
 
 

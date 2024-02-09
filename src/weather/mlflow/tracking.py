@@ -59,7 +59,7 @@ def get_best_run(experiment:Experiment,
     best_runs = explore_best_runs(experiment, 1, metric, order, False)
     return best_runs[0]
 
-def explore_best_runs(experiment:Experiment, n_runs:int=5, metric:str="valid_accuracy", 
+def explore_best_runs(experiment:Experiment, n_runs:int=5, metric:str="val_f1_score", 
                       order:str="DESC", to_dataframe:bool=True) -> List[Run] | pd.DataFrame:
     """find the best runs from the given experiment
 
@@ -89,3 +89,10 @@ def explore_best_runs(experiment:Experiment, n_runs:int=5, metric:str="valid_acc
         run_dataframe = pd.DataFrame({"Run ID": run_ids, "Perf.": run_metrics})
         return run_dataframe
     return runs
+
+def get_raw_artifacts_from_run(tracking_server_uri, run, tmp_dir_path: os.PathLike='tmp') -> Tuple[str, str]:
+    client = MlflowClient(tracking_uri=tracking_server_uri)
+    # We assume that our saves will be under classifier/artifacts
+    feat_eng_path = client.download_artifacts(run.info.run_id, 'classifier/artifacts/predictors_feature_eng_pipeline.joblib', tmp_dir_path)
+    model_path = client.download_artifacts(run.info.run_id, 'classifier/artifacts/model.joblib', tmp_dir_path)
+    return feat_eng_path, model_path

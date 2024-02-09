@@ -33,8 +33,8 @@ target_choice = TargetChoice("Weather", 4)
 metric = f1_score
 
 # NOTE(Participant): This will eventually change
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000") # mlflow
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minio7777")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minio8858")
-MINIO_API_HOST = os.getenv("MINIO_API_HOST", "localhost:31975")
-SERVER_API_URL = os.getenv("SERVER_API_URL", "http://localhost:6000")
+MINIO_API_HOST = os.getenv("MINIO_API_HOST", "localhost:31975")       # MinIO
+SERVER_API_URL = os.getenv("SERVER_API_URL", "http://localhost:6000") # fastAPI
