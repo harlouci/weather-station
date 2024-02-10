@@ -188,7 +188,10 @@ services:
       - ./fastapi_volume:/app/fastapi_volume/
   weather-station:
     environment:
-      - API_URL=http://server-fastapi:8000/predict/
+      - FAST_API_URL=http://server-fastapi:8000/predict/ # localhost can be replaced by the service name "server-fastapi"
+      - FSSPEC_S3_KEY=minio7777
+      - FSSPEC_S3_SECRET=minio8858
+      - FSSPEC_S3_ENDPOINT_URL=http://localhost:31975    # localhost can be replaced by the service name "minio"
     build:
       dockerfile: Dockerfile.weather-station
     container_name: weather-station
