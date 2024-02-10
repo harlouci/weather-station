@@ -1,0 +1,65 @@
+2024-02-10 14:43:39,342 - INFO - Starting Timeloop..
+2024-02-10 14:43:39,343 - INFO - Registered job <function send_new_data at 0x0000017FEA2E9080>
+2024-02-10 14:43:39,344 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:43:40,349 - INFO - 777777777777777777777777
+2024-02-10 14:43:44,455 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000017FD734C310>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:43:45,458 - INFO - 777777777777777777777777
+2024-02-10 14:43:49,545 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000017FEA337D90>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:43:50,547 - INFO - 777777777777777777777777
+2024-02-10 14:43:54,629 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000017FEA339FD0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:43:55,630 - INFO - 777777777777777777777777
+2024-02-10 14:43:59,067 - INFO - Stopping job <function send_new_data at 0x0000017FEA2E9080>
+2024-02-10 14:43:59,711 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000017FEA333B50>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:43:59,712 - INFO - Timeloop exited.
+2024-02-10 14:49:27,894 - INFO - Starting Timeloop..
+2024-02-10 14:49:27,895 - INFO - Registered job <function send_new_data at 0x000002A710CD9120>
+2024-02-10 14:49:27,895 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:49:28,903 - INFO - 777777777777777777777777
+2024-02-10 14:49:33,000 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002A7107CD350>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:49:34,005 - INFO - 777777777777777777777777
+2024-02-10 14:49:35,890 - INFO - Stopping job <function send_new_data at 0x000002A710CD9120>
+2024-02-10 14:49:38,087 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002A70EABB250>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:49:38,087 - INFO - Timeloop exited.
+2024-02-10 14:50:05,305 - INFO - Starting Timeloop..
+2024-02-10 14:50:05,307 - INFO - Registered job <function send_new_data at 0x00000272372CD120>
+2024-02-10 14:50:05,307 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:50:06,319 - INFO - 777777777777777777777777
+2024-02-10 14:50:08,362 - INFO - Stopping job <function send_new_data at 0x00000272372CD120>
+2024-02-10 14:50:10,421 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000027235551990>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:50:10,421 - INFO - Timeloop exited.
+2024-02-10 14:50:24,538 - INFO - Starting Timeloop..
+2024-02-10 14:50:24,540 - INFO - Registered job <function send_new_data at 0x0000015A81349120>
+2024-02-10 14:50:24,540 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:50:27,130 - INFO - Stopping job <function send_new_data at 0x0000015A81349120>
+2024-02-10 14:50:29,628 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000015AFEF41090>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:50:29,628 - INFO - Timeloop exited.
+2024-02-10 14:52:49,960 - INFO - Starting Timeloop..
+2024-02-10 14:52:49,962 - INFO - Registered job <function send_new_data at 0x000002CCD73D8FE0>
+2024-02-10 14:52:49,962 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:52:55,073 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002CCD7424490>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:52:57,961 - INFO - Stopping job <function send_new_data at 0x000002CCD73D8FE0>
+2024-02-10 14:53:00,154 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002CCD7424510>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:53:00,154 - INFO - Timeloop exited.
+2024-02-10 14:54:18,356 - INFO - Starting Timeloop..
+2024-02-10 14:54:18,357 - INFO - Registered job <function send_new_data at 0x000001BE37B98FE0>
+2024-02-10 14:54:18,357 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:54:21,017 - INFO - Stopping job <function send_new_data at 0x000001BE37B98FE0>
+2024-02-10 14:54:23,439 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001BE37BE4890>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:54:23,439 - INFO - Timeloop exited.
+2024-02-10 14:54:52,361 - INFO - Starting Timeloop..
+2024-02-10 14:54:52,362 - INFO - Registered job <function send_new_data at 0x000001D702D79080>
+2024-02-10 14:54:52,362 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:54:53,810 - INFO - Stopping job <function send_new_data at 0x000001D702D79080>
+2024-02-10 14:54:57,478 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001D702DC4CD0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:54:57,478 - INFO - Timeloop exited.
+2024-02-10 14:55:48,150 - INFO - Starting Timeloop..
+2024-02-10 14:55:48,151 - INFO - Registered job <function send_new_data at 0x000001A6163FCFE0>
+2024-02-10 14:55:48,152 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:55:53,258 - ERROR - Error connecting to the API: HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /predict/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001A616425610>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2024-02-10 14:55:53,778 - INFO - Stopping job <function send_new_data at 0x000001A6163FCFE0>
+2024-02-10 14:55:53,779 - INFO - Timeloop exited.
+2024-02-10 14:59:47,968 - INFO - Starting Timeloop..
+2024-02-10 14:59:47,970 - INFO - Registered job <function send_new_data at 0x000001A194FD1A80>
+2024-02-10 14:59:47,970 - INFO - Timeloop now started. Jobs will run based on the interval set
+2024-02-10 14:59:58,394 - INFO - Stopping job <function send_new_data at 0x000001A194FD1A80>
+2024-02-10 14:59:58,394 - INFO - Timeloop exited.
