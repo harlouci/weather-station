@@ -152,6 +152,13 @@ def load_model_by_stage(tracking_uri:str,
     loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
     return loaded_model
 
+def get_model_version_by_stage(tracking_uri, model_name, model_stage):
+    latest_model_versions = get_latest_model_versions(tracking_uri, model_name)
+    for model in latest_model_versions:
+        if model['stage'] == model_stage:
+            return model['version']
+    return None
+
 def load_model_by_version(tracking_uri:str, 
                           model_name:str, model_version:str) -> PyFuncModel:
     """

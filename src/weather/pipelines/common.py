@@ -114,6 +114,12 @@ def prep_data_construction(
                          secret_key=MINIO_SECRET_KEY, secure=False)
     dataset = load_prep_dataset_from_minio(minio_client, ref_data_bucket)              # TODO: in "dev", fetch current splitted dataset, ready for training
     dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket) # in "2011-01-01-prod", fetch 2011-01-01-weather_dataset_raw_production.csv in df
+    from prefect import get_run_logger
+    run_logger = get_run_logger()
+    # These are visible in the API Server
+    run_logger.info(str(dataframes[0].dtypes))
+    run_logger.info(str(dataframes[0]))
+    run_logger.info(str(len(dataframes)))
     dataset = prepare_and_merge_splits_to_dataset(
         dataset,    # dev dataset
         dataframes, # [2011-01-01_raw_prod.df]

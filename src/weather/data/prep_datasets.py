@@ -65,12 +65,12 @@ class Dataset:
     #     return self
 
     def persist(self, dirpath):
-        self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=";", index=False)
-        self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=";", index=False)
-        self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=";", index=False)
-        self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=";", index=False)
-        self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=";", index=False)
-        self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=";", index=False)
+        self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=",", index=True)
+        self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=",", index=False)
+        self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=",", index=True)
+        self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=",", index=False)
+        self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=",", index=True)
+        self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=",", index=False)
 
 
 def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
@@ -166,7 +166,6 @@ def prepare_and_merge_splits_to_dataset(
     remove horizonless rows to predictors in `transformed_data`, split both  `created_target` and `transformed_data`,
     wrap them in dataset `ds`. Then merge in `ds` with `dataset`."""
     for dataframe in dataframes:
-
         transformed_data, created_target = transform_dataset_and_create_target(
             dataframe,
             dataset_ingestion_transformer,
