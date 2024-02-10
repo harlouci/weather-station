@@ -65,12 +65,18 @@ class Dataset:
     #     return self
 
     def persist(self, dirpath):
-        self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=";", index=False)
-        self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=";", index=False)
-        self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=";", index=False)
-        self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=";", index=False)
-        self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=";", index=False)
-        self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=";", index=False)
+        self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=",", index=True)
+        self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=",", index=False)
+        self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=",", index=True)
+        self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=",", index=False)
+        self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=",", index=True)
+        self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=",", index=False)
+        # self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=";", index=False)
+        # self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=";", index=False)
+        # self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=";", index=False)
+        # self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=";", index=False)
+        # self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=";", index=False)
+        # self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=";", index=False)
 
 
 def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):

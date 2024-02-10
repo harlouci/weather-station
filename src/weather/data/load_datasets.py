@@ -124,12 +124,12 @@ def load_prep_dataset_from_minio(
 ) -> Dataset:
 
     d = Dataset(
-        train_x=pd.read_csv(minio_client.get_object(data_bucket, "train_x.csv"), sep=";"), # pd.DataFrame
-        val_x=pd.read_csv(minio_client.get_object(data_bucket, "val_x.csv"), sep=";"),
-        test_x=pd.read_csv(minio_client.get_object(data_bucket, "test_x.csv"), sep=";"),
-        train_y=pd.read_csv(minio_client.get_object(data_bucket, "train_y.csv"), sep=";").iloc[:, 0], # pd.Series
-        val_y=pd.read_csv(minio_client.get_object(data_bucket, "val_y.csv"), sep=";").iloc[:, 0],
-        test_y=pd.read_csv(minio_client.get_object(data_bucket, "test_y.csv"), sep=";").iloc[:, 0],
+        train_x=pd.read_csv(minio_client.get_object(data_bucket, "train_x.csv"), sep=",", index_col=0, parse_dates=True), # pd.DataFrame
+        val_x=pd.read_csv(minio_client.get_object(data_bucket, "val_x.csv"), sep=",", index_col=0, parse_dates=True),
+        test_x=pd.read_csv(minio_client.get_object(data_bucket, "test_x.csv"), sep=",", index_col=0, parse_dates=True),
+        train_y=pd.read_csv(minio_client.get_object(data_bucket, "train_y.csv"), sep=",").iloc[:, 0], # pd.Series
+        val_y=pd.read_csv(minio_client.get_object(data_bucket, "val_y.csv"), sep=",").iloc[:, 0],
+        test_y=pd.read_csv(minio_client.get_object(data_bucket, "test_y.csv"), sep=",").iloc[:, 0],
     )
 
     return d
