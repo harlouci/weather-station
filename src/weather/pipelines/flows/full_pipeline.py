@@ -207,8 +207,8 @@ def tune(
 
 @flow(name="full-pipeline", on_completion=[stop_mlflow_run])
 def automated_pipeline(
-    ref_data_bucket: str = "reference-data",
-    curr_data_bucket: str = "current-data",
+    ref_data_bucket: str = "dev",
+    curr_data_bucket: str = "2011-01-01",
     max_runs: int = 1,
     mlflow_experiment_name: str = "tune_randome_forest_with_full_pipeline",
 ):

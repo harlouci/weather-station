@@ -47,22 +47,30 @@ def load_model_from_run(tracking_server_uri:str, run:Run) -> PyFuncModel:
     return model
 
 def get_best_run(experiment:Experiment, 
-                 metric:str="val_f1_score", order:str="DESC") -> Run:
+                 metric:str="val_f1_score",
+                 order:str="DESC",
+                 filter_string:str="") -> Run:
     """Find the best experiment run entity
 
     Args:
         experiment (Experiment): experiment settings
         metric (str, optional): the metric for runs comparison. Defaults to "valid_accuracy".
         order (str, optional): the sorting order to find the best at first row w.r.t the metric. Defaults to "DESC".
-
+        Filter_string (str, optional): a string with which to filter the runs. Defaults to empty string, thus searching all runs.
     Returns:
         Run: the best run entity associated with the given experiment
     """
-    best_runs = explore_best_runs(experiment, 1, metric, order, False)
+    best_runs = explore_best_runs(experiment, 1, metric, order, filter_string, False)
     return best_runs[0]
 
-def explore_best_runs(experiment:Experiment, n_runs:int=5, metric:str="val_f1_score", 
-                      order:str="DESC", to_dataframe:bool=True) -> List[Run] | pd.DataFrame:
+
+
+def explore_best_runs(experiment:Experiment,
+                      n_runs:int=5,
+                      metric:str="val_f1_score",
+                      order:str="DESC",
+                      filter_string:str="",
+                      to_dataframe:bool=True) -> List[Run] | pd.DataFrame:
     """find the best runs from the given experiment
 
     Args:
@@ -70,6 +78,7 @@ def explore_best_runs(experiment:Experiment, n_runs:int=5, metric:str="val_f1_sc
         n_runs (int, optional): the count of runs to return. Defaults to 5.
         metric (str, optional): the metric for runs comparison. Defaults to "valid_accuracy".
         order (str, optional): the sorting order w.r.t the metric to have the best at first row. Defaults to "DESC".
+        filter_string (str, optional): a string with which to filter the runs. Defaults to empty string, thus searching all runs.
         to_dataframe (bool, optional): True for a derived Dataframe of Run ID / Perf. Metric. Defaults to True.
 
     Returns:
@@ -83,6 +92,7 @@ def explore_best_runs(experiment:Experiment, n_runs:int=5, metric:str="val_f1_sc
     runs = client.search_runs(
         experiment_ids=experiment_id,
         max_results=n_runs,
+        filter_string=filter_string,
         order_by=[f"metrics.{metric} {order}"]
     )
     if to_dataframe:

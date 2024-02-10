@@ -137,7 +137,8 @@ def load_prep_dataset_from_minio(
 
 def load_raw_datasets_from_minio(
     minio_client,
-    data_bucket: str = "current-data"):
+    data_bucket: str = "current-data"
+):
     dataframes = []
     ds_info = {}
     objects = minio_client.list_objects(data_bucket)
