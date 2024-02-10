@@ -8,10 +8,10 @@ COPY setup.cfg setup.py pyproject.toml /app/
 COPY src /app/src
 RUN pip install --no-cache-dir --no-deps .
 
-COPY client_app /app/client_app
+COPY FastAPI_server /app/FastAPI_server
 COPY models /app/models
 
-WORKDIR /app/client_app
+WORKDIR /app/FastAPI_server
 
 
 CMD [ "uvicorn", "app:app", "--host", "0.0.0.0" ]

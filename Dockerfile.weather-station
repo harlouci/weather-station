@@ -8,9 +8,9 @@ COPY setup.cfg setup.py pyproject.toml /app/
 COPY src /app/src
 RUN pip install --no-cache-dir --no-deps .
 
-COPY client_app /app/client_app
+COPY weather-station /app/weather-station
 
-WORKDIR /app/client_app
+WORKDIR /app/weather-station
 # VOLUME [ "/models" ]
 RUN mkdir /scratch
 
@@ -18,4 +18,4 @@ RUN mkdir /scratch
 
 EXPOSE 6000
 ENV UVICORN_PORT=6000
-CMD [ "python", "data_server.py"]
+CMD [ "python", "weather-station.py"]
