@@ -63,7 +63,8 @@ def save_current_chunk(prod_bucket, current_chunk, date):
     date = date.strftime("%Y-%m-%d")
 
     filename = f"{date}_weather_dataset_raw_production.csv"
-    filepath = prod_bucket + "/" + filename
+    import os
+    filepath = os.path.join(prod_bucket,  filename)
     with fsspec.open(filepath, mode="wb") as f:
         current_chunk.df.to_csv(f, header=True)
          
