@@ -26,8 +26,8 @@ from utilities.utilities import (
     predict_df,
     send_messages,
     load_data,
-    load_model_by_stage,
 )
+from weather.mlflow.registry import load_model_by_stage
 
 
 # Load environment variables from .env file

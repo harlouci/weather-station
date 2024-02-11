@@ -91,23 +91,4 @@ def send_messages(phones, twilio_client, twilio_phone):
             body="Dear docker, it will rain in 4 hours.",
             to=phone
         )
-
-# copy-pasted from weather.mlflow.registry.py
-# to avoid having to copy the src code in the container
-def load_model_by_stage(tracking_uri:str, 
-                        model_name:str, model_stage:str) -> PyFuncModel:
-    """
-    Loads a model based on its name and deployment stage.
-
-    Args:
-    - tracking_uri (str): The URI where the MLflow tracking server is running.
-    - model_name (str): The name of the model to load.
-    - model_stage (str): The deployment stage of the model ('Production', 'Staging', etc.).
-
-    Returns:
-    - PyFuncModel: The loaded model in the specified stage.
-    """
-    mlflow.set_tracking_uri(tracking_uri)
-    model_uri = f"models:/{model_name}/{model_stage}"
-    loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
-    return loaded_model
+        
