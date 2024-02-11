@@ -116,7 +116,7 @@ async def predict(item: Item):
     else:
         return {"prediction": "no rain"}
 
-@app.post("/reload/")
+@app.get("/reload/")
 async def reload():
     global model
     mlflow.set_tracking_uri(model_registry_uri)
