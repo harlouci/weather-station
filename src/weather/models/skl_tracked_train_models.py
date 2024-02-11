@@ -126,7 +126,7 @@ def train_and_evaluate_with_tracking(
             signature = infer_signature(data.train_x.head(),  # TODO: slightly modify pipelines qui remove NaNs before feature engineering
                                         classifier_obj.predict(train_inputs))
             # Log the trained model as an MLflow artifact
-            artifacts = {"predictors_feature_eng_path": tmp_fpath('predictors_feature_eng_pipeline.joblib'), 
+            artifacts = {"feature_eng_path": tmp_fpath('predictors_feature_eng_pipeline.joblib'), 
                          "model_path": tmp_fpath('model.joblib')}
             mlflow_pyfunc_model_path = 'classifier'
             mlflow.pyfunc.log_model(
@@ -137,36 +137,6 @@ def train_and_evaluate_with_tracking(
                 signature=signature,
                 extra_pip_requirements=["weather"],
             )
-            #Track ROC curve plots for validation and test sets
-            val_cm = confusion_matrix(
-                data.val_y.values,
-                classifier_obj.predict(predictors_feature_engineering_transformer.transform(data.val_x)),
-                labels=classifier_obj.classes_,
-                normalize="all",
-            )
 
-            # fig = px.imshow(val_cm,
-            #     labels=dict(x="Predicted label", y="True label", color=""),
-            #     x=['0.0', '1.0'],
-            #     y=['0.0', '1.0']
-            #    )
-            # fig.update_xaxes(side="bottom")
-            # display = ConfusionMatrixDisplay(
-            #     confusion_matrix=val_cm,
-            #     display_labels=classifier_obj.classes_)
-            # print("HERE")
-            # print(type(display))
-            # print(isinstance(display, matplotlib.figure.Figure))
-            #mlflow.log_figure(fig, 'plots/ValConfustionMatrixDisplay.png')
-            test_cm = confusion_matrix(
-                data.test_y.values,
-                classifier_obj.predict(predictors_feature_engineering_transformer.transform(data.test_x)),
-                labels=classifier_obj.classes_,
-                normalize="all",
-            )
-            # display = ConfusionMatrixDisplay(
-            #     confusion_matrix=test_cm,
-            #     display_labels=classifier_obj.classes_)
-            # mlflow.log_figure(display, 'plots/TestConfustionMatrixDisplay.png')
     # Clean up temporary directory
     clean_temporary_dir()
