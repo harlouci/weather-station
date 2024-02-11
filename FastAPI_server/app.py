@@ -59,11 +59,16 @@ data_ingestion_transformer = joblib.load(model_folder / "dataset_ingestion_pipel
 phones_folder = Path('.')
 phones = get_phones(phones_folder)
 
+# Load dev raw data, create signature and log it
+items_data = load_data(dev_raw_data_minio_file_path)
+signature_data = items_data[-2:]
+signature_data = data_ingestion_transformer.transform(signature_data)
+logging.info("The signature : "+str(signature_data.to_json()))
+
 # Initialization 
 current_chunk = DataChunk()
 previous_day = None
 previous_date = None
-items_data = load_data(dev_raw_data_minio_file_path)
 previous_item_df = items_data[-1:]
 
 
@@ -105,8 +110,11 @@ async def predict(item: Item):
 
 @app.get("/reload/")
 async def reload():
-    global model
-    model = load_model_by_stage(model_registry_uri, model_name, model_stage)
+    global model, predictors_feature_eng_transformer
+    loaded_artifacts = load_production_model(model_registry_uri, model_name)
+    predictors_feature_eng_transformer, model = loaded_artifacts.predict(signature_data)
+    
+   
 
 
 

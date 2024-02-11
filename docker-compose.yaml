@@ -66,7 +66,10 @@ services:
       - MINIO_API_HOST=host.docker.internal:31975  
       - SERVER_API_URL=http://server-fastapi:8000/reload
     depends_on:
+      - prefect-server
+      - mlflow
       - minio
+      - server-fastapi
   server-fastapi:
     environment:
       - FSSPEC_S3_KEY=minio7777
@@ -74,7 +77,7 @@ services:
       - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
       - MODEL_REGISTRY_URI=http://host.docker.internal:5000
       - MODEL_STAGE=Production
-      - MODEL_NAME=random_forest_from_full_pipeline
+      - MODEL_NAME=random_forest
       - TWILIO_ACCOUNT_SID=AC0d28ff9833ed345f96d36a6497c16cd7
       - TWILIO_AUTH_TOKEN=5b860afff92083034f99ba9a16a67400
       - TWILIO_PHONE=+16592353786
@@ -107,5 +110,6 @@ services:
       dockerfile: Dockerfile.weather-station
     container_name: weather-station
     depends_on:
+      - mlflow
       - server-fastapi
       - minio
