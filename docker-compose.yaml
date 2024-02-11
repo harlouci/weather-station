@@ -185,6 +185,9 @@ services:
       - FSSPEC_S3_SECRET=minio8858
       - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
       - MINIO_ENDPOINT_URL=http://host.docker.internal:31975
+      - MODEL_REGISTRY_URI=http://host.docker.internal:5000
+      - MODEL_STAGE=Production
+      - MODEL_NAME=random_forest_from_full_pipeline
     build:
       dockerfile: Dockerfile.server-fastapi
     container_name: server-fastapi

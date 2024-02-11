@@ -11,6 +11,7 @@ load_dotenv(".env")
 from fastapi import FastAPI
 from twilio.rest import Client
 from minio import Minio
+import mlflow
 
 from utilities.utilities import (
     Item,
@@ -32,6 +33,9 @@ twilio_client = Client(account_sid, auth_token)
 production_raw_data_minio_file_path = Path(os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH"))
 prod_bucket = Path(os.getenv("PROD_BUCKET"))
 send_message = os.getenv("SEND_MESSAGE")
+model_registry_uri= os.getenv("MODEL_REGISTRY_URI")
+model_stage= os.getenv("MODEL_STAGE")
+model_name=os.getenv("MODEL_NAME")
 
 # Create minio_client
 MINIO_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
@@ -114,7 +118,13 @@ async def predict(item: Item):
 
 @app.post("/reload/")
 async def reload():
-    pass
+    global model
+    mlflow.set_tracking_uri(model_registry_uri)
+    model_uri = f"models:/{model_name}/{model_stage}"
+    loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
+    model = loaded_model
+
+
 
 
 
