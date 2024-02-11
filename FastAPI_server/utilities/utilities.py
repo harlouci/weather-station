@@ -55,11 +55,11 @@ def save_current_chunk(fastapi_dev_folder, current_chunk, date):
 
     filename = f"{date}_weather_dataset_raw_production.csv"
     current_chunk.df.to_csv(current_folder / filename, header=True)
-    filename = f"{date}_predicted.csv"
+    filename = f"{date}_predictions.csv"
     current_chunk.predictions_sr.to_csv(current_folder / filename, header=True)
     filename = f"{date}_ingested_data.csv"
     current_chunk.ingested_df.to_csv(current_folder / filename, header=True)
-    filename = f"{date}_grouf_truth.csv"
+    #filename = f"{date}_grouf_truth.csv"
     #current_chunk.ground_truth_sr.to_csv(current_folder / filename, header=True)
 
 

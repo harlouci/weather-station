@@ -180,6 +180,10 @@ services:
       - prefect-server
       - minio
   server-fastapi:
+    environment:
+      - FSSPEC_S3_KEY=minio7777
+      - FSSPEC_S3_SECRET=minio8858
+      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
     build:
       dockerfile: Dockerfile.server-fastapi
     container_name: server-fastapi
@@ -191,7 +195,7 @@ services:
       - FAST_API_URL=http://server-fastapi:8000/predict/ # localhost can be replaced by the service name "server-fastapi"
       - FSSPEC_S3_KEY=minio7777
       - FSSPEC_S3_SECRET=minio8858
-      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
+      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975 # do not put minio or localhost...
     build:
       dockerfile: Dockerfile.weather-station
     container_name: weather-station
