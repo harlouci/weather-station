@@ -175,7 +175,7 @@ services:
       - MINIO_ACCESS_KEY=minio7777
       - MINIO_SECRET_KEY=minio8858
       - MINIO_API_HOST=host.docker.internal:31975  
-      - SERVER_API_URL=http://host.docker.internal:6000/reload
+      - SERVER_API_URL=http://server-fastapi:8000/reload
     depends_on:
       - prefect-server
       - minio
