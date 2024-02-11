@@ -128,7 +128,7 @@ def build_training_and_evaluation_func(
                                         classifier_obj.predict(train_inputs))
             # Log Model
             artifacts = {
-                "predictors_feature_eng_path": tmp_fpath("predictors_feature_eng_pipeline.joblib"),
+                "feature_eng_path": tmp_fpath("predictors_feature_eng_pipeline.joblib"), # cannot change name of the dictionary because used by mlflow
                 "model_path": tmp_fpath("model.joblib")}
             mlflow_pyfunc_model_path = "classifier"
             mlflow.pyfunc.log_model(
