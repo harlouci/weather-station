@@ -113,7 +113,7 @@ async def predict(item: Item):
         return {"prediction": "no rain"}
 
 @app.post("/reload/")
-async def predict():
+async def reload():
     pass
 
 
