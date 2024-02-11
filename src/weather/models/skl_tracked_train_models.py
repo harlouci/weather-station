@@ -93,11 +93,11 @@ def train_and_evaluate_with_tracking(
     tmp_dir = create_temporary_dir_if_not_exists()
     # Save the data transformer pipeline
     tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
-    joblib.dump(predictors_feature_engineering_transformer, tmp_fpath('predictors_feature_eng_pipeline.joblib'))
     # Transform the data for training, validation, and test sets
     train_inputs = predictors_feature_engineering_transformer.fit_transform(data.train_x)
     valid_inputs = predictors_feature_engineering_transformer.transform(data.val_x)
     test_inputs = predictors_feature_engineering_transformer.transform(data.test_x)
+    joblib.dump(predictors_feature_engineering_transformer, tmp_fpath('predictors_feature_eng_pipeline.joblib'))
     # Loop through each classifier in the list
     for classifier in classifers_list:
         # Set up run-specific details
