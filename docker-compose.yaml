@@ -78,7 +78,7 @@ services:
       - TWILIO_ACCOUNT_SID=AC0d28ff9833ed345f96d36a6497c16cd7
       - TWILIO_AUTH_TOKEN=5b860afff92083034f99ba9a16a67400
       - TWILIO_PHONE=+16592353786
-      - SEND_MESSAGE=True
+      - SEND_MESSAGE=False
       - SIMULATION_RAW_DATA_MINIO_FILE_PATH=s3://simul/weather_dataset_raw_production.csv
       - PRODUCTION_RAW_DATA_MINIO_FILE_PATH=s3://prod/weather_dataset_raw_production.csv
       - DEV_RAW_DATA_MINIO_FILE_PATH=s3://dev/weather_dataset_raw_development.csv

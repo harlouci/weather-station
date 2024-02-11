@@ -15,6 +15,7 @@ from twilio.rest import Client
 
 import mlflow
 
+
 from utilities.utilities import (
     Item,
     DataChunk,
@@ -24,7 +25,8 @@ from utilities.utilities import (
     save_current_chunk,
     predict_df,
     send_messages,
-    load_data
+    load_data,
+    load_model_by_stage,
 )
 
 
@@ -104,13 +106,7 @@ async def predict(item: Item):
 @app.get("/reload/")
 async def reload():
     global model
-    mlflow.set_tracking_uri(model_registry_uri)
-    model_uri = f"models:/{model_name}/{model_stage}"
-    loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
-    model = loaded_model
-
-
-
+    model = load_model_by_stage(model_registry_uri, model_name, model_stage)
 
 
 

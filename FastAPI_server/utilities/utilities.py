@@ -37,19 +37,16 @@ class DataChunk:
         self.predictions_sr =  pd.concat([self.predictions_sr, new_data.predictions_sr], axis=0)
         self.ingested_df =  pd.concat([self.ingested_df, new_data.ingested_df], axis=0)
 
-
 def json_to_item_df(received_json):
     item = Item(**received_json)
     item_df = pd.DataFrame([item.dict()])
     return item_df
-
 
 def predict_df(model, data_ingestion_pipeline, predictors_feature_eng_transformer, previous_item_df, new_item_df):
     df =  pd.concat([previous_item_df, new_item_df], axis=0)
     result_data = data_ingestion_pipeline.transform(df)
     y = model.predict(predictors_feature_eng_transformer.transform(result_data))
     return y[-1], result_data.head(-1)
-
 
 def save_current_chunk(prod_bucket, current_chunk, date):
     """Save current raw data, current ingestion data and current predictions  in MinIO.
@@ -87,7 +84,6 @@ def get_phones(path:Path):
 
     return phones
 
-
 def send_messages(phones, twilio_client, twilio_phone):
     for phone in phones:
         message = twilio_client.messages.create(
@@ -95,3 +91,23 @@ def send_messages(phones, twilio_client, twilio_phone):
             body="Dear docker, it will rain in 4 hours.",
             to=phone
         )
+
+# copy-pasted from weather.mlflow.registry.py
+# to avoid having to copy the src code in the container
+def load_model_by_stage(tracking_uri:str, 
+                        model_name:str, model_stage:str) -> PyFuncModel:
+    """
+    Loads a model based on its name and deployment stage.
+
+    Args:
+    - tracking_uri (str): The URI where the MLflow tracking server is running.
+    - model_name (str): The name of the model to load.
+    - model_stage (str): The deployment stage of the model ('Production', 'Staging', etc.).
+
+    Returns:
+    - PyFuncModel: The loaded model in the specified stage.
+    """
+    mlflow.set_tracking_uri(tracking_uri)
+    model_uri = f"models:/{model_name}/{model_stage}"
+    loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
+    return loaded_model
