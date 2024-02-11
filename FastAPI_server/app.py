@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 from fastapi import FastAPI
 from twilio.rest import Client
+from minio import Minio
 
 from utilities.utilities import (
     Item,
@@ -31,6 +32,21 @@ twilio_client = Client(account_sid, auth_token)
 production_raw_data_minio_file_path = Path(os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH"))
 prod_bucket = Path(os.getenv("PROD_BUCKET"))
 send_message = os.getenv("SEND_MESSAGE")
+
+# Create minio_client
+MINIO_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
+MINIO_ACCESS_KEY = os.getenv("FSSPEC_S3_KEY")
+MINIO_SECRET_KEY = os.getenv("FSSPEC_S3_SECRET")
+print("HERE 4:", MINIO_ENDPOINT_URL)
+minio_client = Minio(MINIO_ENDPOINT_URL, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+
+found = minio_client.bucket_exists("prod")
+if not found:
+    minio_client.make_bucket("prod")
+else:
+    print("Bucket 'prod' already exists.")
+    
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.info('Here the basic path 1 !!!!! : '+str(prod_bucket))
@@ -73,6 +89,7 @@ async def predict(item: Item):
             prod_bucket,
             current_chunk,
             previous_date,
+            minio_client,
         )
         current_chunk = DataChunk()
 

@@ -12,6 +12,6 @@ COPY FastAPI_server /app/FastAPI_server
 COPY models /app/models
 
 WORKDIR /app/FastAPI_server
-
+RUN mkdir /scratch
 
 CMD [ "uvicorn", "app:app", "--host", "0.0.0.0" ]

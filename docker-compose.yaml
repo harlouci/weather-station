@@ -184,6 +184,7 @@ services:
       - FSSPEC_S3_KEY=minio7777
       - FSSPEC_S3_SECRET=minio8858
       - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
+      - MINIO_ENDPOINT_URL=http://host.docker.internal:31975
     build:
       dockerfile: Dockerfile.server-fastapi
     container_name: server-fastapi

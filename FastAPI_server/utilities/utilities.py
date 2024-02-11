@@ -1,6 +1,7 @@
 import fsspec
 import logging
 import pandas as pd
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from pydantic import BaseModel
@@ -48,7 +49,7 @@ def predict_df(model, data_ingestion_pipeline, predictors_feature_eng_transforme
     return y[-1], result_data.head(-1)
 
 
-def save_current_chunk(prod_bucket: Path, current_chunk, date):
+def save_current_chunk(prod_bucket: Path, current_chunk, date, minio_client):
     """Save current raw data, current ingestion data and current predictions  in MinIO.
     
     Each file in a specific subfolder of `prod_bucket`, `raw_data`, `predictions` and
@@ -62,24 +63,28 @@ def save_current_chunk(prod_bucket: Path, current_chunk, date):
 
     filename = f"{date}_weather_dataset_raw_production.csv"
     #Path.mkdir(prod_bucket / "raw_data", exist_ok=True)
-    filepath = prod_bucket / "raw_data" / filename
+    #filepath = prod_bucket / "raw_data" / filename
     #filepath = prod_bucket / filename
-    with fsspec.open(filepath, mode="wb") as f:
-        current_chunk.df.to_csv(f, header=True)
+    # with fsspec.open(filepath, mode="wb") as f:
+    #     current_chunk.df.to_csv(f, header=True)
+    with tempfile.TemporaryDirectory() as temp_d:
+        local_filepath = os.path.join(temp_d, filename)
+        current_chunk.df.to_csv(local_filepath, header=True)
+        minio_client.fput_object("prod", filename,  local_filepath)
     
-    filename = f"{date}_predictions.csv"
-    #Path.mkdir(prod_bucket / "predictions_data", exist_ok=True)
-    filepath = prod_bucket / "predictions_data" / filename
-    #filepath = prod_bucket / filename
-    with fsspec.open(filepath, mode="wb") as f:
-        current_chunk.predictions_sr.to_csv(f, header=True)
+    # filename = f"{date}_predictions.csv"
+    # #Path.mkdir(prod_bucket / "predictions_data", exist_ok=True)
+    # filepath = prod_bucket / "predictions_data" / filename
+    # #filepath = prod_bucket / filename
+    # with fsspec.open(filepath, mode="wb") as f:
+    #     current_chunk.predictions_sr.to_csv(f, header=True)
 
-    filename = f"{date}_ingested_data.csv"
-    #Path.mkdir(prod_bucket / "ingested_data", exist_ok=True)
-    filepath = prod_bucket / "ingested_data" / filename
-    #filepath = prod_bucket / filename
-    with fsspec.open(filepath, mode="wb") as f:
-        current_chunk.ingested_df.to_csv(f, header=True)
+    # filename = f"{date}_ingested_data.csv"
+    # #Path.mkdir(prod_bucket / "ingested_data", exist_ok=True)
+    # filepath = prod_bucket / "ingested_data" / filename
+    # #filepath = prod_bucket / filename
+    # with fsspec.open(filepath, mode="wb") as f:
+    #     current_chunk.ingested_df.to_csv(f, header=True)
 
 
 def get_date(current_df):
