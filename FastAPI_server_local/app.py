@@ -1,5 +1,3 @@
-import fsspec
-import fsspec.implementations.local
 import os
 import logging
 from pathlib import Path
@@ -9,10 +7,10 @@ warnings.filterwarnings("ignore")
 import joblib
 import pandas as pd
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(".env")
 from fastapi import FastAPI
 from twilio.rest import Client
-
+from minio import Minio
 import mlflow
 
 from utilities.utilities import (
@@ -24,7 +22,6 @@ from utilities.utilities import (
     save_current_chunk,
     predict_df,
     send_messages,
-    load_data
 )
 
 
@@ -33,14 +30,27 @@ account_sid = os.getenv("TWILIO_ACCOUNT_SID")
 auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 twilio_phone = os.getenv("TWILIO_PHONE")
 twilio_client = Client(account_sid, auth_token)
-production_raw_data_minio_file_path = os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH")
-dev_raw_data_minio_file_path = os.getenv("DEV_RAW_DATA_MINIO_FILE_PATH")
-prod_bucket = os.getenv("PROD_BUCKET")
+production_raw_data_minio_file_path = Path(os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH"))
+prod_bucket = Path(os.getenv("PROD_BUCKET"))
 send_message = os.getenv("SEND_MESSAGE")
-model_registry_uri = os.getenv("MODEL_REGISTRY_URI")
-model_stage = os.getenv("MODEL_STAGE")
-model_name = os.getenv("MODEL_NAME")
-model_folder = Path(os.getenv("MODEL_DIR")) #mounted folder for now, moving to mlflow soon
+model_registry_uri= os.getenv("MODEL_REGISTRY_URI")
+model_stage= os.getenv("MODEL_STAGE")
+model_name=os.getenv("MODEL_NAME")
+
+# Create minio_client
+MINIO_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
+MINIO_ACCESS_KEY = os.getenv("FSSPEC_S3_KEY")
+MINIO_SECRET_KEY = os.getenv("FSSPEC_S3_SECRET")
+print("HERE 4:", MINIO_ENDPOINT_URL)
+minio_client = Minio(MINIO_ENDPOINT_URL, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+
+found = minio_client.bucket_exists("prod")
+if not found:
+    minio_client.make_bucket("prod")
+else:
+    print("Bucket 'prod' already exists.")
+    
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.info('Here the basic path 1 !!!!! : '+str(prod_bucket))
@@ -49,11 +59,16 @@ logging.info('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
 app = FastAPI()    
 
 # Load model, data_ingestion_transformer, predictors_feature_eng_transforme
+# TODO:
+model_folder = Path(__file__).resolve().parent.parent / "models"
+data_folder = Path(__file__).resolve().parent.parent / "data"
+
+
 model = joblib.load(model_folder / "model.pkl")
 predictors_feature_eng_transformer = joblib.load(model_folder / "predictors_feature_eng_pipeline.pkl")
 data_ingestion_transformer = joblib.load(model_folder / "dataset_ingestion_pipeline.pkl")
 
-# TODO: Jules/docker's phone number, transfer to Minio
+# TODO: Jules/docker's phone number
 phones_folder = Path('.')
 phones = get_phones(phones_folder)
 
@@ -61,8 +76,7 @@ phones = get_phones(phones_folder)
 current_chunk = DataChunk()
 previous_day = None
 previous_date = None
-items_data = load_data(dev_raw_data_minio_file_path)
-previous_item_df = items_data[-1:]
+previous_item_df = pd.read_csv(data_folder / "weather_dataset_raw_development.csv")[-1:]
 
 
 # Create a POST endpoint to receive JSON data and return a response
@@ -78,7 +92,8 @@ async def predict(item: Item):
         save_current_chunk(
             prod_bucket,
             current_chunk,
-            previous_date
+            previous_date,
+            minio_client,
         )
         current_chunk = DataChunk()
 
