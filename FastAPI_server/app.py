@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
@@ -6,6 +7,7 @@ warnings.filterwarnings("ignore")
 import joblib
 import pandas as pd
 from dotenv import load_dotenv
+load_dotenv(".env")
 from fastapi import FastAPI
 from twilio.rest import Client
 
@@ -20,20 +22,27 @@ from utilities.utilities import (
     send_messages,
 )
 
+
 # Load environment variables from .env file
-load_dotenv(".env")
 account_sid = os.getenv("TWILIO_ACCOUNT_SID")
 auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 twilio_phone = os.getenv("TWILIO_PHONE")
 twilio_client = Client(account_sid, auth_token)
+production_raw_data_minio_file_path = Path(os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH"))
+prod_bucket = Path(os.getenv("PROD_BUCKET"))
 send_message = os.getenv("SEND_MESSAGE")
 
-app = FastAPI()
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.info('Here the basic path 1 !!!!! : '+str(prod_bucket))
+logging.info('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
 
-# Load model, data_ingestion_transformer, predictors_feature_eng_transformer
+app = FastAPI()    
+
+# Load model, data_ingestion_transformer, predictors_feature_eng_transforme
+# TODO:
 model_folder = Path(__file__).resolve().parent.parent / "models"
 data_folder = Path(__file__).resolve().parent.parent / "data"
-fastapi_dev_folder = Path(__file__).resolve().parent.parent / "fastapi_volume" / "dev"
+
 
 model = joblib.load(model_folder / "model.pkl")
 predictors_feature_eng_transformer = joblib.load(model_folder / "predictors_feature_eng_pipeline.pkl")
@@ -49,6 +58,7 @@ previous_day = None
 previous_date = None
 previous_item_df = pd.read_csv(data_folder / "weather_dataset_raw_development.csv")[-1:]
 
+
 # Create a POST endpoint to receive JSON data and return a response
 @app.post("/predict/")
 async def predict(item: Item):
@@ -60,7 +70,7 @@ async def predict(item: Item):
 
     if previous_day is not None and new_day != previous_day:
         save_current_chunk(
-            fastapi_dev_folder,
+            prod_bucket,
             current_chunk,
             previous_date,
         )
