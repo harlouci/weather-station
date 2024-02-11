@@ -55,7 +55,7 @@ from weather.transformers.skl_transformer_makers import (
 # N.B.: Note that due to how the hyperparameter tuning is done, we need to repeat
 #       most steps.
 def build_training_and_evaluation_func(
-    model_family = RandomForestClassifier,
+    model_family,
     data: Dataset,
     experiment_bag: dict,
     metric: Callable,
