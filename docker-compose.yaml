@@ -191,7 +191,7 @@ services:
       - FAST_API_URL=http://server-fastapi:8000/predict/ # localhost can be replaced by the service name "server-fastapi"
       - FSSPEC_S3_KEY=minio7777
       - FSSPEC_S3_SECRET=minio8858
-      - FSSPEC_S3_ENDPOINT_URL=http://localhost:31975    # localhost can be replaced by the service name "minio"
+      - FSSPEC_S3_ENDPOINT_URL=http://localhost:31975   # localhost/minio/host.docker.internal only host.docker.internal works
     build:
       dockerfile: Dockerfile.weather-station
     container_name: weather-station

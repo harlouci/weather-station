@@ -2,6 +2,8 @@ import os
 from datetime import timedelta
 
 from dotenv import load_dotenv
+load_dotenv(".env")
+
 from timeloop import Timeloop
 
 from utilities.utilities import (
@@ -13,7 +15,7 @@ from utilities.utilities import (
 
 
 # Load environment variables
-load_dotenv(".env")
+
 time_loop = int(os.getenv("TIME_LOOP"))
 production_raw_data_minio_file_path = os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH")
 max_number_of_rows = int(os.getenv("MAX_NUMBER_OF_ROWS"))
