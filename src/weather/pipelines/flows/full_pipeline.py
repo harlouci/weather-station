@@ -54,22 +54,21 @@ from weather.transformers.skl_transformer_makers import (
 # N.B.: Note that we removed the feature_names
 # N.B.: Note that due to how the hyperparameter tuning is done, we need to repeat
 #       most steps.
-def build_evaluation_func(
+def build_training_and_evaluation_func(
+    model_family = RandomForestClassifier,
     data: Dataset,
     experiment_bag: dict,
     metric: Callable,
     random_state = 1234,
 ):
-    """
-    Create a new evaluation function
-    :return: new evaluation function.
-    """
+    """Create a new evaluation function and returns it."""
 
-    def eval_func(hparams):
-        """
-        Train sklearn model with given parameters by invoking MLflow run.
-        :param params: Parameters to the train script we optimize over
-        :return: The metric value evaluated on the validation data.
+    def train_eval_func(hparams):
+        """ Train, evaluate and log an sklearn model with given parameters by invoking MLflow run.
+
+        Set an mlflow run with `experiment_bag` identifiers. 
+        Train a RF model with given `hparams`, `random_state`, `data`, `metric`.
+        Eval the trained model and  return -score_dict["val"].
         """
         import os
         import tempfile
@@ -79,20 +78,22 @@ def build_evaluation_func(
 
         from mlflow.models.signature import infer_signature
 
+        ## 1 - Set an mlflow run with `experiment_bag` identifiers
         with mlflow.start_run(
             experiment_id=experiment_bag["mlflow_experiment_id"]
         ), tempfile.TemporaryDirectory() as temp_d:
             # Utility method to make things shorter
-            tmp_fpath = lambda fpath: os.path.join(temp_d, fpath)
+            tmp_fpath = lambda fpath: os.path.join(temp_d, fpath) 
 
             # NOTE(Participant): This was added
             # N.B. We set a tag name so we can differentiate which Prefect run caused this
             #      Mlflow run. This will be useful to query models that were trained during
-            #      this Prefect Run.
+            #      this Prefect run.
             mlflow.set_tag("prefect_run_name", experiment_bag["prefect_run_name"])
 
-            # Params used to train RF
-            (max_depth, max_features, class_weight, min_samples_leaf) = hparams
+            ## 2 - Train a RF model with given `hparams`, `random_state`, `data`, `metric`
+
+            # Create, fit, and dump predictors_feature_engineering_transformer
             predictors_feature_engineering_transformer = make_predictors_feature_engineering_transformer(
                 feature_names,
                 target_choice,
@@ -100,10 +101,11 @@ def build_evaluation_func(
             # predictors_feature_engineering_transformer.fit(data.train_x)
             fit_transformer.fn(
                 predictors_feature_engineering_transformer, dataset=data)
-
             joblib.dump(predictors_feature_engineering_transformer,
                         tmp_fpath("predictors_feature_eng_pipeline.joblib"))
-            # Pass the parameters into dictionary
+            
+            # Pass the parameters used to train RF into dictionary 
+            (max_depth, max_features, class_weight, min_samples_leaf) = hparams
             rf_params = {
                 "max_depth": max_depth,
                 "max_features": max_features,
@@ -112,12 +114,15 @@ def build_evaluation_func(
                 "random_state": random_state,
             }
 
-            # Define model
+            # Create predictors features, set the RF model, with given `hparams`, train and dump the model
             train_inputs = predictors_feature_engineering_transformer.transform(data.train_x)
-            classifier_obj = RandomForestClassifier(**rf_params)
+            classifier_obj = model_family(**rf_params)
             classifier_obj.fit(train_inputs, data.train_y)
             joblib.dump(classifier_obj, tmp_fpath("model.joblib"))
-            # Get Model Signature
+
+            ## 3 - Log trained model in MLflow Tracking Server
+
+            # Get model signature
             sample = data.train_x.sample(3)
             signature = infer_signature(data.train_x.head(),
                                         classifier_obj.predict(train_inputs))
@@ -156,23 +161,24 @@ def build_evaluation_func(
             log_metrics(score_dict)
             return -score_dict["val"]
 
-    return eval_func
+    return train_eval_func
 
 
 # N.B: We removed the feature_names
 @task
 def tune(
+    model_family,
     data: Dataset,
-    # feature_names: FeatureNames,
-    # target_choice: TargetChoice,
     metric: Callable, # alias for score
-    max_runs,
+    max_runs, 
     experiment_bag,
     ds_info,
 
 ) -> None:
     """
-    Run hyperparameter optimization.
+    Run hyperparameter optimization on space defined within the code, for parameters 
+    specific to RandomForestClassifer.
+    TODO: Hyperparameters space defined within the code. Should be defined elsewhere.
     """
     from hyperopt import fmin, hp, tpe
     from hyperopt.pyll import scope
@@ -183,7 +189,8 @@ def tune(
     # For now, this is unused (the local functions will call set_experiment themselves)
     experiment_id = mlflow.set_experiment(
         experiment_id=experiment_bag["mlflow_experiment_id"]).experiment_id
-    # Search space for KMeans + RF
+    
+    # Search space for RF
     space = [
         scope.int(hp.quniform("max_depth", 1, 30, q=1)),
         hp.uniform("max_features", 0.05, 0.8),
@@ -192,10 +199,9 @@ def tune(
     ]
     # Optimisation function that takes parent id and search params as input
     fmin(
-        fn=build_evaluation_func(
+        fn=build_training_and_evaluation_func(
+            model_family,
             data,
-            #feature_names,
-            #target_choice,
             experiment_bag,
             metric,
         ),
@@ -208,11 +214,11 @@ def tune(
 @flow(name="full-pipeline", on_completion=[stop_mlflow_run])
 def automated_pipeline(
     ref_data_bucket: str = "dev",
-    curr_data_bucket: str = "2011-01-01",
-    max_runs: int = 1,
+    curr_data_bucket: str = "prod",
+    max_runs: int = 1, # Higher and the better the hyperparameters exploration
     mlflow_experiment_name: str = "tune_randome_forest_with_full_pipeline",
 ):
-    """Replaces experiments with HP tuning"""
+    """Replaces experiments with HP tuning."""
     ######################################
     # Run setup
     ######################################
@@ -232,14 +238,14 @@ def automated_pipeline(
     # Logging setup
     run_logger = get_run_logger()
     # These are visible in the API Server
-    run_logger.info("Hiii")
+    run_logger.info("Hi, I'm Prefect, your automated pipeline runner.")
     # These are visible in the worker
     logging.info(mlflow.get_tracking_uri())
 
     ######################################
     # Data Extraction
     ######################################
-    df = raw_data_extraction(curr_data_bucket) # "weather_dataset_raw_development.csv"
+    df = raw_data_extraction(curr_data_bucket) # e.g.  "2011-01-01_weather_dataset_raw_production.csv"
 
     # Data ingestion
     dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
@@ -253,7 +259,7 @@ def automated_pipeline(
     #     run_logger.warning('Failed data validation. See artifacts or GX UI for more details.')
 
     ######################################
-    # Data preparation
+    # Create dataset dev + 2011-01-01_prod
     ######################################
 
     remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
@@ -261,23 +267,25 @@ def automated_pipeline(
 
     dataset, ds_info = prep_data_construction(           # This dataset is the new dev, consisting of dev + 2011-01-01_prod
         ref_data_bucket,                                 # bucket dev
-        curr_data_bucket,                                # buckets 2011-01-01-prod, 2011-01-02-prod,...
+        curr_data_bucket,                                # bucket prod, files 2011-01-01-prod, 2011-01-02-prod,...
         dataset_ingestion_transformer,
         remove_horizonless_rows_transformer,
         target_creation_transformer,
     )
                                                                      #
     ######################################
-    # Training with hyperparameter search
+    # Training with hyperparameter search on data "dev + 2011-01-01_prod"
     #####################################
     tune(
+        model_family=RandomForestClassifier,
         data=dataset,
         metric=metric,
         max_runs=max_runs,
         experiment_bag=pipeline_experiment_bag,
         ds_info=ds_info,
     )
-
+    
+    # Identfy current_experiment
     current_experiment = Experiment(
         tracking_server_uri=mlflow.get_tracking_uri(),
         name=pipeline_experiment_bag["mlflow_experiment_name"],
@@ -293,18 +301,18 @@ def automated_pipeline(
     ######################################
     # Scoring
     ######################################
-    best_feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run)
+    feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run) # best(trans, model)= (trans, best model)
     score_dict = score(
         model=best_classifier_obj,
         dataset=dataset,
-        transformer=best_feat_eng_obj,
+        transformer=feat_eng_obj, # no hyperparameters research when fitting this transformer
         metric=metric,
     )
     run_logger.info(score_dict)
 
     # TODO: HERE BELOW
     ######################################
-    # Model register
+    # Model register : register the best run, and transition it to staging
     ######################################
     save_model = True
     saved_model_name = "random_forest_from_full_pipeline"
@@ -315,7 +323,7 @@ def automated_pipeline(
         transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version)
 
     ######################################
-    # Model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
+    # Best model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
     ######################################
     # result = validate_model(dataset, best_feat_eng_obj, best_classifier_obj, best_run.info.run_id)
     # run_logger.info(f" {len(result.get_passed_checks())} of Model tests are passed.")
@@ -327,8 +335,14 @@ def automated_pipeline(
     # else:
     #     run_logger.info("The Model validation fails")
     #     tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
+    
+    # TODO Sunday
+    # 1 - Fix writing csv files to Prod
+    # 2 - As soon as a new model is deployed to production, load it into FastAPI_server/app.py, at "reload" endpoint
+    # 3 - Fix data validation and model validation via deepchecks.
+    # 4 - Play with pipeline: vary max_runs, timeloop's timedelta, cronjob, max_number_of_rows, days/months.
     ######################################
-    # Model deployment
+    # Best model deployment
     ######################################
     should_deploy = True
     if should_deploy:
