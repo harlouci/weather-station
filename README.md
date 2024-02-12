@@ -17,7 +17,6 @@ pip install -e .[all]
 
 # Port of Turku
 
-![alt text](https://github.com/iva-mlops-program/weather-prediction/blob/deepchecks/port_of_turku.jpg?raw=true)
+![alt text](https://www.portofturku.fi/wp-content/uploads/2024/01/Etusivu_3400x2080px-%E2%80%93-juhlavuosilogolla-1920x900.jpg)
 
 Source: [Port  of Turku](https://www.portofturku.fi/en/)
-
