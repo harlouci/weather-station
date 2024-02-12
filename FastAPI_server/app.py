@@ -15,7 +15,7 @@ from twilio.rest import Client
 
 import mlflow
 
-
+from weather.mlflow.registry import load_production_model
 from utilities.utilities import (
     Item,
     DataChunk,
