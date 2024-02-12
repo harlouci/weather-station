@@ -256,6 +256,7 @@ def automated_pipeline(
         run_logger.info("The production bucket is empty. ")
         return
     run_logger.info(f"The production bucket contains the following data files: {ds_info}")
+    run_logger.info(f"df columns in step 1: {df.columns}")
 
     # 2) Ingest df
     dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
@@ -287,6 +288,7 @@ def automated_pipeline(
     ## 6) Extract data from dev bucket
     df, ds_info = raw_data_extraction(dev_bucket) # list_csv_files = [weather_dataset_raw_development.csv, last(##-##-##)_data.csv]
     run_logger.info(f"The development bucket contains the following data files: {ds_info}")
+    run_logger.info(f"df columns in step 6: {df.columns}")
 
     ## 7) Save df as weather_dataset_raw_development.csv in dev_bucket 
     df_filename = "weather_dataset_raw_development.csv"
@@ -300,15 +302,13 @@ def automated_pipeline(
 
     run_logger.info("STOP--STOP--STOP--STOP-STOP!!!!")
 
-    ## 9) Ingest,transform, and split df
-    # Ingest
-    ingested_df = dataset_ingestion_transformer.transform(df) 
+    ## 9) Ingest, transform,and split df
 
-    # Transform
+    # Ingest and transform
     remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
     target_creation_transformer = make_target_creation_transformer(target_choice)
     transformed_data, created_target = transform_dataset_and_create_target(
-        ingested_df,   
+        df,   
         dataset_ingestion_transformer,
         remove_horizonless_rows_transformer,
         target_creation_transformer,

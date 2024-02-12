@@ -123,6 +123,7 @@ async def reload():
     model_uri = f"models:/{model_name}/{model_stage}"
     loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
     model = loaded_model
+    return {"action": "The model was loaded"}
 
 
 

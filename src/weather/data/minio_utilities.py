@@ -34,7 +34,7 @@ def write_dataframe_to_minio(df, bucket, filename):
     assert filename != "", "`filename` is an empty string."
     minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
     data_path = os.path.join(SCRATCH_DIR, filename)
-    df.to_csv(data_path, header=True)
+    df.to_csv(data_path, header=True, index=False)
     found = minio_client.bucket_exists(bucket)
     if not found:
        minio_client.make_bucket(bucket)

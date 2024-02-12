@@ -64,7 +64,7 @@ def save_current_chunk(prod_bucket, current_chunk, date):
     filepath = os.path.join(prod_bucket,  filename)
     logging.info(f"Filepath saving with Minio: {filepath}")
     with fsspec.open(filepath, mode="wb") as f: 
-        current_chunk.df.to_csv(f, header=True)
+        current_chunk.df.to_csv(f, header=True, index=False)
          
 def get_date(current_df):
     return pd.to_datetime(current_df["Timestamp"], utc=True)[0]
