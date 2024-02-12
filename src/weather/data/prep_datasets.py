@@ -1,8 +1,8 @@
 """Includes functions to prepare datasets for ML applications."""
-
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import pandas as pd
 
@@ -33,31 +33,44 @@ class Dataset:
     train_y: pd.Series
     val_y: pd.Series
     test_y: pd.Series
+    train_val_x: pd.DataFrame = None
+    train_val_y: pd.Series = None
 
-    # def merge_in(self, dataset):
-    #     self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
-    #     self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
-    #     self.test_x = pd.concat([self.test_x, dataset.test_x], axis=0)
-    #     self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
-    #     self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
-    #     self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
+    def concatenate_train_and_val_splits(self):
+        self.train_val_x = pd.concat([self.train_x, self.val_x])
+        self.train_val_y = pd.concat([self.train_y, self.val_y])
 
-    def apply_transformer(self, transformer):
-        self.train_x = transformer.transform(self.train_x)
-        self.val_x = transformer.transform(self.val_x)
-        self.test_x = transformer.transform(self.test_x)
-        self.train_y = transformer.transform(self.train_y)
-        self.val_y = transformer.transform(self.val_y)
-        self.test_y = transformer.transform(self.test_y)
-        return self
+
+    def merge_in(self, dataset):
+        self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
+        self.val_x = pd.concat([self.val_x, dataset.val_x], axis=0)
+        self.test_x = pd.concat([self.test_x, dataset.test_x], axis=0)
+        self.train_y = pd.concat([self.train_y, dataset.train_y], axis=0)
+        self.val_y = pd.concat([self.val_y, dataset.val_y], axis=0)
+        self.test_y = pd.concat([self.test_y, dataset.test_y], axis=0)
+
+    # TODO: remove this commented out chunks
+    # def apply_transformer(self, transformer):
+    #     self.train_x = transformer.transform(self.train_x)
+    #     self.val_x = transformer.transform(self.val_x)
+    #     self.test_x = transformer.transform(self.test_x)
+    #     self.train_y = transformer.transform(self.train_y)
+    #     self.val_y = transformer.transform(self.val_y)
+    #     self.test_y = transformer.transform(self.test_y)
+    #     return self
+
+    # def apply_transformer_to_test_split(self, transformer):
+    #     self.test_x = transformer.transform(self.test_x)
+    #     self.test_y = transformer.transform(self.test_y)
+    #     return self
 
     def persist(self, dirpath):
-        self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=";", index=False)
-        self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=";", index=False)
-        self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=";", index=False)
-        self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=";", index=False)
-        self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=";", index=False)
-        self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=";", index=False)
+        self.train_x.to_csv(Path(dirpath) / "train_x.csv", sep=",", index=True)
+        self.train_y.to_csv(Path(dirpath) / "train_y.csv", sep=",", index=False)
+        self.val_x.to_csv(Path(dirpath) / "val_x.csv", sep=",", index=True)
+        self.val_y.to_csv(Path(dirpath) / "val_y.csv", sep=",", index=False)
+        self.test_x.to_csv(Path(dirpath) / "test_x.csv", sep=",", index=True)
+        self.test_y.to_csv(Path(dirpath) / "test_y.csv", sep=",", index=False)
 
 
 def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
@@ -76,11 +89,13 @@ def split_data(data: pd.DataFrame, split_size: Tuple[float] = (0.7, 0.1, 0.2)):
 
 def transform_dataset_and_create_target(
     data: pd.DataFrame,
-    dataset_transformer,
+    dataset_ingestion_transformer,
+    remove_horizonless_rows_transformer,
     target_creation_transformer,
 ):
-    transformed_data = dataset_transformer.transform(data)
-    created_target = target_creation_transformer.fit_transform(transformed_data)
+    ingested_data = dataset_ingestion_transformer.transform(data)
+    transformed_data = remove_horizonless_rows_transformer.transform(ingested_data)
+    created_target = target_creation_transformer.transform(ingested_data)
     return transformed_data, created_target
 
 
@@ -102,6 +117,65 @@ def prepare_binary_classification_tabular_data(
     )
     return dataset
 
+def prepare_binary_classfication_tabular_data_from_splits(
+    csv_dirpath: str,
+    predictors: List[str],
+    predicted: str,
+    pos_neg_pair: Tuple[str, str] | None = None,
+    splits_sizes: Tuple[float] = (0.7, 0.1, 0.2),
+    seed: int = 42,
+) -> Dataset:
+    """Prepare the training/validation/test inputs (X) and outputs (y) for binary clasification modeling
 
-def remove_horizonless_rows(dataset, remove_horizonless_rows_transformer):
-    return dataset.apply_transformer(remove_horizonless_rows_transformer)
+    Args:
+    ----
+        csv_dirpath (str): path of the directory of csv files
+        predictors (List[str]): list of predictors column names
+        predicted (str): column name of the predicted outcome
+        pos_neg_pair (Tuple[str,str], optional): groundtruth positive/negative labels. Defaults to None.
+        splits_sizes (List[float], optional): list of relative size portions for training, validation, test data, respectively. Defaults to [0.7,0.1,0.2].
+        seed (int, optional): random seed. Defaults to 42.
+
+    Returns:
+    -------
+        Dataset: datassets for binary classification with training/validation/test splits
+    """
+    dataset = None
+    for fname in os.listdir(csv_dirpath):
+        if not fname.endswith(".csv"):
+            continue
+        fpath = os.path.join(csv_dirpath, fname)
+        data_frame = pd.read_csv(fpath)
+        if dataset is not None:
+            dataset.merge_in(prepare_binary_classification_tabular_data(data_frame, predictors, predicted,
+                                                                       pos_neg_pair, splits_sizes, seed))
+        else:
+            dataset = prepare_binary_classification_tabular_data(data_frame, predictors, predicted,
+                                                                pos_neg_pair, splits_sizes, seed)
+    return dataset
+
+def prepare_and_merge_splits_to_dataset(
+    dataset, # dev dataset
+    dataframes, # e.g. [2011-01-01_raw_prod.df]
+    dataset_ingestion_transformer,
+    remove_horizonless_rows_transformer,
+    target_creation_transformer,
+    splits_sizes: Tuple[float] = (0.7, 0.1, 0.2),
+) -> Dataset:
+    """Preprocess `dataframe`, the unique item of `dataframes`, aka ingest it, create the target in `created_target`,
+    remove horizonless rows to predictors in `transformed_data`, split both  `created_target` and `transformed_data`,
+    wrap them in dataset `ds`. Then merge in `ds` with `dataset`."""
+    for dataframe in dataframes:
+        transformed_data, created_target = transform_dataset_and_create_target(
+            dataframe,
+            dataset_ingestion_transformer,
+            remove_horizonless_rows_transformer,
+            target_creation_transformer,
+        )
+        ds = prepare_binary_classification_tabular_data(
+            transformed_data,
+            created_target,
+            split_size=splits_sizes,
+        )
+        dataset.merge_in(ds)
+    return dataset

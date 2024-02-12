@@ -1,4 +1,5 @@
 #*.csv
+#.env
 
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
@@ -44,3 +45,5 @@ MANIFEST
 
 # temporary folder where we explore things
 explore/
+mflow/
+minio_data/

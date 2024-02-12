@@ -25,117 +25,6 @@ services:
       - BACKEND_URI=sqlite:////data/backend.db
     volumes:
       - ./mlflow:/data
-  batchjob:
-    build:
-      context: .
-      dockerfile: Dockerfile.batchjob
-    depends_on:
-      - mlflow
-      - minio
-    command: ["--date-from", "2010-08-11", "--date-to", "2010-08-13", "predictions", "s3://bank-marketing/batchjob.csv"]
-    environment:
-      - FSSPEC_S3_KEY=minio7777
-      - FSSPEC_S3_SECRET=minio8858
-      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
-      - SCRATCH_DIR=/scratch
-      - BANK_DB=s3://bank-marketing/data/start.db
-      - ECO_SOCIO_DF=s3://bank-marketing/data/external/socio_economic_indices_data.csv
-      - MODEL_NAME=random_forest
-      - MODEL_STAGE=Production
-      - MODEL_REGISTRY_URI=http://host.docker.internal:5000
-      - INF_SCHEMA_TEST_SAMPLE=s3://model/data/inference_schema_test_sample.csv
-  mongodb:
-    image: mongodb/mongodb-community-server:latest
-    container_name: mongodb-service
-    ports:
-      - 27017:27017
-    volumes:
-      - ./mongodb:/data/db
-  server:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    container_name: server-api
-    depends_on:
-      - mlflow
-      - minio
-      - mongodb
-    ports:
-      - 6000:6000
-    environment:
-      - UVICORN_PORT=6000
-      - MINIO_ACCESS_KEY=minio7777
-      - MINIO_SECRET_KEY=minio8858
-      - MINIO_ENDPOINT_URL=http://host.docker.internal:31975
-      - LOG_LEVEL=DEBUG
-      - MODEL_LOAD_STRATEGY=joblib_to_onnx
-      - PRECOMPUTED_VALUES_LOCATION=s3://bank-marketing/batchjob.csv
-      - MODEL_NAME=random_forest
-      - MODEL_STAGE=Production
-      - MODEL_REGISTRY_URI=http://host.docker.internal:5000
-      - MONGO_CLIENT_ADDRESS=mongodb://host.docker.internal:27017
-      - MONGO_DATABASE=monitoring_service
-      - COLLECTION=prediction
-  client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    container_name: client-ui
-    depends_on:
-      - server
-      - minio
-    ports:
-      - "8501:8501"
-    environment:
-      - FSSPEC_S3_KEY=minio7777
-      - FSSPEC_S3_SECRET=minio8858
-      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
-      - SCRATCH_DIR=/scratch
-      - ECO_SOCIO_DF=s3://bank-marketing/data/external/socio_economic_indices_data.csv
-      - FUTURE_RES_DF=s3://bank-marketing/data/external/campaign_results_data.csv
-      - BANK_DB=s3://bank-marketing/data/bank_marketing.db
-      - SERVER_API_URL=http://host.docker.internal:6000/preds
-      - CURR_DATA_BUCKET=current-data
-      - MINIO_ACCESS_KEY=minio7777
-      - MINIO_SECRET_KEY=minio8858
-      - MINIO_API_HOST=host.docker.internal:31975  
-  evidently:
-    build:
-      context: .
-      dockerfile: Dockerfile.evidently
-    container_name: evidently-ui
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./evidently:/workspace
-  monitoring:
-    build:
-      context: .
-      dockerfile: Dockerfile.monitoring
-    container_name: monitoring-job
-    depends_on:
-      - mlflow
-      - minio
-      - evidently
-      - mongodb
-    ports:
-      - 587:587
-    environment:
-      - FSSPEC_S3_KEY=minio7777
-      - FSSPEC_S3_SECRET=minio8858
-      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
-      - EVIDENTLY_UI_URL=http://host.docker.internal:8001
-      - MONGO_CLIENT_ADDRESS=mongodb://host.docker.internal:27017
-      - BANK_DB=s3://bank-marketing/data/bank_marketing.db
-      - ECO_SOCIO_DF=s3://bank-marketing/data/external/socio_economic_indices_data.csv
-      - FUTURE_RES_DF=s3://bank-marketing/data/external/campaign_results_data.csv
-      - SCRATCH_DIR=/scratch
-      - MODEL_REGISTRY_URI=http://host.docker.internal:5000
-      - MODEL_NAME=random_forest
-      - MODEL_STAGE=Production
-      - SENDER_MAIL=xxx@outlook.com #tested with outlook.com 
-      - SENDER_PWD=xxx
-      - RECEIVER_MAIL=xxx
   prefect-server:
     image: prefecthq/prefect:2-python3.11
     container_name: prefect-server
@@ -163,7 +52,7 @@ services:
     command:
       - python
       - -m
-      - bank_marketing.pipelines.for_release.serve_full_pipeline
+      - weather.pipelines.for_release.serve_full_pipeline
     working_dir: / # Note this is necessary because of Prefect's checks
     environment:
       - PREFECT_API_URL=http://host.docker.internal:4200/api
@@ -176,6 +65,52 @@ services:
       - MINIO_SECRET_KEY=minio8858
       - MINIO_API_HOST=host.docker.internal:31975  
       - SERVER_API_URL=http://host.docker.internal:6000/reload
+      - SCRATCH_DIR=/scratch # TODO: 11H
     depends_on:
       - prefect-server
+      - mlflow
+      - minio
+      - server-fastapi
+  server-fastapi:
+    environment:
+      - FSSPEC_S3_KEY=minio7777
+      - FSSPEC_S3_SECRET=minio8858
+      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975
+      - MODEL_REGISTRY_URI=http://host.docker.internal:5000
+      - MODEL_STAGE=Production
+      - MODEL_NAME=random_forest
+      - TWILIO_ACCOUNT_SID=AC0d28ff9833ed345f96d36a6497c16cd7
+      - TWILIO_AUTH_TOKEN=5b860afff92083034f99ba9a16a67400
+      - TWILIO_PHONE=+16592353786
+      - SEND_MESSAGE=False
+      - SIMULATION_RAW_DATA_MINIO_FILE_PATH=s3://simul/weather_dataset_raw_production.csv
+      - PRODUCTION_RAW_DATA_MINIO_FILE_PATH=s3://prod/weather_dataset_raw_production.csv
+      - DEV_RAW_DATA_MINIO_FILE_PATH=s3://dev/weather_dataset_raw_development.csv
+      - PROD_BUCKET=s3://prod/
+      - MODEL_DIR=/models
+    build:
+      dockerfile: Dockerfile.server-fastapi
+    container_name: server-fastapi
+    ports:
+      - 6000:6000
+    volumes:
+      - ./models:/models
+    depends_on:
+      - minio
+  weather-station:
+    environment:
+      - FAST_API_URL=http://host.docker.internal:6000/predict/ # localhost can be replaced by the service name "server-fastapi"
+      - FSSPEC_S3_KEY=minio7777
+      - FSSPEC_S3_SECRET=minio8858
+      - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975 # do not put minio or localhost..
+      - SIMULATION_RAW_DATA_MINIO_FILE_PATH=s3://simul/weather_dataset_raw_production.csv
+      - MAX_NUMBER_OF_ROWS=200
+      - TIME_LOOP=1
+      - LOG_LEVEL=INFO
+    build:
+      dockerfile: Dockerfile.weather-station
+    container_name: weather-station
+    depends_on:
+      - mlflow
+      - server-fastapi
       - minio
