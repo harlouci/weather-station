@@ -52,6 +52,17 @@ def delete_files_in_minio(bucket, filenames):
         except Exception as e:
             print(f"Error deleting file '{filename}' from bucket '{bucket}': {e}")
 
+
+def find_files_in_minio(bucket, extensiton:str=''
+):
+    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+    objects = minio_client.list_objects(bucket)
+    filenames = [obj.object_name for obj in objects]
+    if extensiton:
+        return [filename for filename in filenames if filename.split(".")[-1]==extensiton]
+    return filenames
+
+
 #def delete_files_in_minio(bucket, filenames):
     #fs = fsspec.filesystem('s3', anon=False)
     # Set fs

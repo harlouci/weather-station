@@ -124,7 +124,8 @@ services:
       - MINIO_API_HOST=host.docker.internal:31975
       - SIMULATION_RAW_DATA_MINIO_FILE_BUCKET=simul
       - USER_PHONES_MINIO_FILE_PATH=s3://user/phones.txt
-      - START_DEV_RAW_DATA_MINIO_FILE_PATH=s3://user/phones.txt
+      - START_DEV_RAW_DATA_MINIO_FILE_BUCKET=dev
+      - START_PROD_RAW_DATA_MINIO_FILE_BUCKET=prod
       - START_MODEL_MINIO_FILE_PATH=s3://model/model.pkl
       - START_FEATURE_TRANSFORMER_MINIO_FILE_PATH=s3://model/predictors_feature_eng_pipeline.pkl
       - START_DATASET_INGESTION_TRANSFORMER_MINIO_FILE_PATH=s3://model/dataset_ingestion_pipeline.pkl
