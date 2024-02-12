@@ -3,7 +3,7 @@ import os
 import fsspec.implementations.local
 import logging
 import pandas as pd
-import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from pydantic import BaseModel
@@ -69,11 +69,32 @@ def save_current_chunk(prod_bucket, current_chunk, date):
 def get_date(current_df):
     return pd.to_datetime(current_df["Timestamp"], utc=True)[0]
 
-def load_data(data_file):
-    # Load dataframes
-    with fsspec.open(data_file) as f:
-        df = pd.read_csv(f)
-    return df
+def load_data(data_file, max_retries=20, delay_seconds=1):
+    """
+        Attempt to load data from a file up to a maximum number of retries.
+
+        Parameters:
+        - data_file: The path to the data file to load.
+        - max_retries: The maximum number of attempts to try loading the data.
+        - delay_seconds: The delay between retry attempts in seconds.
+
+        Returns:
+        - The loaded DataFrame if successful, None otherwise.
+        """
+    for attempt in range(max_retries):
+        try:
+            with fsspec.open(data_file) as f:
+                df = pd.read_csv(f)
+            logging.info(f"Data loaded successfully on attempt {attempt + 1}.")
+            return df
+        except Exception as e:
+            logging.error(f"Attempt {attempt + 1} failed with error: {e}")
+            if attempt < max_retries - 1:
+                logging.info(f"Retrying in {delay_seconds} seconds...")
+                time.sleep(delay_seconds)
+            else:
+                logging.error("Maximum retries reached. Failed to load data.")
+    return None
 
 def get_phones(path:Path):
     file_path = path / "phones.txt"
