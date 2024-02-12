@@ -1,16 +1,18 @@
-import warnings
-
-warnings.filterwarnings("ignore")
+import os
 import tempfile
+import warnings
 from typing import Dict
+warnings.filterwarnings("ignore")
 
 import joblib
+import mlflow
 import pandas as pd
 import requests
 import sklearn.pipeline
 
-#from great_expectations.checkpoint.checkpoint import CheckpointResult
-#from great_expectations.data_context import AbstractDataContext
+from deepchecks.tabular import Dataset as DeepChecksDataset
+from deepchecks.tabular.suites import data_integrity
+from deepchecks.tabular.suites import model_evaluation
 from minio import Minio
 from prefect import task
 from weather.data.load_datasets import (
@@ -22,22 +24,18 @@ from weather.data.prep_datasets import (
     prepare_and_merge_splits_to_dataset,
     prepare_binary_classification_tabular_data,
 )
-
-#from weather.features.skl_build_features import AdvFeatureNames, make_advanced_data_transformer
-#from weather.gx.builders import get_context
-#from weather.gx.runners import run_pipeline_checkpoint_from_df
+from weather.helpers.utils import (
+    create_temporary_dir_if_not_exists,
+    clean_temporary_dir,
+)
 from weather.mlflow.tracking import get_raw_artifacts_from_run
 from weather.models.skl_train_models import score_evaluation_dict
-
-#from weather.models.skl_validate_models import min_perf_validation
 from weather.pipelines.definitions import (
     MINIO_ACCESS_KEY,
     MINIO_API_HOST,
     MINIO_SECRET_KEY,
     SERVER_API_URL,
 )
-
-import mlflow
 
 
 def stop_mlflow_run(flow, flow_run, state):
@@ -160,25 +158,23 @@ def fit_transformer(
     predictors_feature_engineering_transformer.fit(dataset.train_x)
     return predictors_feature_engineering_transformer
 
-
-# @task
-# def data_validation(dataframe: pd.DataFrame, gx_expectation_suite_name: str = "latest_on_demand") -> bool:
-#     """Runs data validation using a Greater Expectation specified expectation suite with provided dataframe
-
-#     Args:
-#         dataframe: The pandas dataframe against which to returns the expectations.
-#         gx_expectation_suite_name: Name of the expectation suite
-
-#     Returns:
-#         Boolean value indicating if the expectation suite passed
-#     """
-#     context: AbstractDataContext = get_context(create=False)
-
-#     results = run_pipeline_checkpoint_from_df(context, gx_expectation_suite_name, dataframe, run_name=prefect.runtime.flow_run.get_name())
-
-#     create_markdown_artifact(markdown=make_gx_markdown_from_results(results), description="Results of Great Expectations data validation.")
-
-#     return results.success
+@task
+def validate_ingested_data(ingested_df, feature_names, target_choice):
+    """Run the data integrity suite on `ingested_df`. Return True if all tests pass, False otherwise."""
+    
+    # Populate Dataset parameters
+    features = feature_names.numerical + feature_names.categorical + [target_choice.input_name]
+    features = list(set(features))
+    cat_features = [target_choice.input_name] + feature_names.categorical
+    cat_features =list(set(cat_features))
+    
+    # Convert ingested_df into a deepchecks Dataset instance
+    ds = DeepChecksDataset(ingested_df, features = features, cat_features = cat_features)
+   
+    # Run integrity suite 
+    integrity_suite = data_integrity()
+    results = integrity_suite.run(ds)
+    return results.passed()
 
 
 @task
@@ -201,24 +197,32 @@ def load_artifacts_from_mlflow(run):
         )
         return joblib.load(best_feat_eng_obj), joblib.load(best_classifier_obj)
 
-# @task
-# def validate_model(dataset, data_transformer, classifier, run_id):
-#     cat_features = person_info_cols_cat + cat_cols_wo_customer
-#     result = min_perf_validation(dataset, data_transformer, classifier, cat_features)
 
-#     tmp_dir = create_temporary_dir_if_not_exists()
-#     tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
+@task
+def validate_model(dataset, trained_model, trained_predictors_feature_engineering_transformer, run_id, excluded_check=5):
+    """Run the validation suite minus `WeekSegmentPerformance` on `dataset`. Return True if all tests pass, False otherwise."""
+    # Populate train_ds
+    X_train = trained_predictors_feature_engineering_transformer.transform(dataset.train_x)
+    y_train = dataset.train_y
+    train_ds = DeepChecksDataset(X_train, label=y_train, cat_features=[])
+    # Populate test_ds
+    X_test = trained_predictors_feature_engineering_transformer.transform(dataset.test_x)
+    y_test = dataset.test_y
+    test_ds = DeepChecksDataset(X_test, label=y_test, cat_features=[])
+    # Run model validation suite 
+    evaluation_suite = model_evaluation()
+    results = evaluation_suite.remove(excluded_check).run(train_ds, test_ds, trained_model)
+    # Log results in json and html formats in "tests" subfolder of "artifats" in run `run_id`
+    tmp_dir = create_temporary_dir_if_not_exists()
+    tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
+    with open(tmp_fpath("deepchecks_report.json"), 'w') as f:
+        f.write(results.to_json())
+    results.save_as_html(tmp_fpath("deepchecks_report.html"))
+    with mlflow.start_run(run_id=run_id) as run:
+        mlflow.log_artifacts("tmp", artifact_path="tests")
+    clean_temporary_dir()
+    return results
 
-#     with open(tmp_fpath("deepchecks_report.json"), "w") as f:
-#         f.write(result.to_json())
-#     result.save_as_html(tmp_fpath("deepchecks_report.html"))
-
-#     with mlflow.start_run(run_id=run_id) as run:
-#         mlflow.log_artifacts("tmp", artifact_path="tests")
-
-#     clean_temporary_dir()
-
-#     return result
 
 @task
 def deploy():
