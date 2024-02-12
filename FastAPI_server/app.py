@@ -113,7 +113,7 @@ async def reload():
     global model, predictors_feature_eng_transformer
     loaded_artifacts = load_production_model(model_registry_uri, model_name)
     predictors_feature_eng_transformer, model = loaded_artifacts.predict(signature_data)
-    
+    return {"action": "the model was loaded"}
    
 
 
