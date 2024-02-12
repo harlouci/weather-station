@@ -22,6 +22,7 @@ from weather.data.minio_utilities import(
     delete_files_in_minio,
 )
 from weather.mlflow.registry import (
+    tag_model,
     get_model_version_by_stage,
     register_model_from_run,
     transition_model_to_production,
@@ -32,8 +33,8 @@ from weather.mlflow.tracking import (
     get_best_run,
 )
 from weather.pipelines.common import (
-    #validate_model,  # deepchecks
-    #data_validation, # deepchecks
+    validate_ingested_data, 
+    validate_model,
     deploy,
     fit_transformer,
     load_artifacts_from_mlflow,
@@ -253,7 +254,7 @@ def automated_pipeline(
     ## 1) Extract data from prod bucket
     df, ds_info = raw_data_extraction(prod_bucket) # csv files of bucket prod, merged in a random order
     if df.empty:
-        run_logger.info("The production bucket is empty. ")
+        run_logger.info("The production bucket is empty.")
         return
     run_logger.info(f"The production bucket contains the following data files: {ds_info}")
     run_logger.info(f"df columns in step 1: {df.columns}")
@@ -263,17 +264,9 @@ def automated_pipeline(
     ingested_df = dataset_ingestion_transformer.transform(df)
 
     # 3) Data Validation with Deepchecks
-    """ send_model_to_production = TRUE
-       if deepchecks fail:
-           print("MESSAGE")
-           send_model_to_production = FALSE
-           save_data_elsewhere...
-           etc. (ex: if weather-station not working, then stop pipeline)
-    """
-    # TODO: create  version deepchecks
-    # validation_passed = data_validation(ingested_df)
-    # if not validation_passed:
-    #     run_logger.warning('Failed data validation. See artifacts or GX UI for more details.')
+    validation_passed = validate_ingested_data(ingested_df, feature_names, target_choice)
+    if not validation_passed:
+        run_logger.warning('Failed data validation. See artifacts or deepchecks UI for more details.')
 
     ## 4) Save df as last(##-##-##)_data.csv in dev_bucket (which now contains weather_dataset_raw_development.csv, last(##-##-##)_data.csv)
     df_filename = extract_most_recent_filename_if_any(ds_info, "data")
@@ -362,19 +355,17 @@ def automated_pipeline(
         model_version = get_model_version_by_stage(current_experiment.tracking_server_uri, saved_model_name, "None")
         transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version)
 
-    # 12) Validate model
-    # Best model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
-    ######################################
-    # result = validate_model(dataset, best_feat_eng_obj, best_classifier_obj, best_run.info.run_id)
-    # run_logger.info(f" {len(result.get_passed_checks())} of Model tests are passed.")
-    # run_logger.info(f" {len(result.get_not_passed_checks())} of Model tests are failed.")
-    # run_logger.info(f" {len(result.get_not_ran_checks())} of Model tests are not runned.")
-    # if result.passed(fail_if_check_not_run=True, fail_if_warning=True):
-    #     run_logger.info("The Model validation succeeds")
-    #     tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "PASSED"})
-    # else:
-    #     run_logger.info("The Model validation fails")
-    #     tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
+    # 12) Validate model    
+    results = validate_model(dataset, best_classifier_obj, feat_eng_obj, best_run.info.run_id)
+    run_logger.info(f" {len(results.get_passed_checks())} of model tests are passed.")
+    run_logger.info(f" {len(results.get_not_passed_checks())} of model tests are failed.")
+    run_logger.info(f" {len(results.get_not_ran_checks())} of model tests are not runned.")
+    if results.passed(fail_if_check_not_run=True, fail_if_warning=True):
+        run_logger.info("The model validation succeeds.")
+        tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "PASSED"})
+    else:
+        run_logger.info("The model validation fails.")
+        tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
     
     ## 13) Deploy model
     should_deploy = True
