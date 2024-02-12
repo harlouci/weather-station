@@ -1,10 +1,10 @@
 # Weather Prediction
 
-Project to predict the weather at the Port of Turku, in Finland). We are using the dataset found at 
+Project to predict the weather at the Port of Turku, in Finland. We are using the dataset found at 
 
 https://github.com/PacktPublishing/EngineeringMLOps/blob/master/03_Code_Meets_Data/Dataset/weather_dataset_raw.csv
 
-Knowing whether it's going to rain helps the port's dockers to manage their schedules, in particular to know whether they should stay at home or not.
+Knowing in advance whether it's going to rain or not helps the port's dockers to manage their schedules, in particular to know whether they should stay at home or not.
 
 
 # Install
@@ -15,8 +15,9 @@ conda activate weather
 pip install -e .[all]
 ```
 
-# The Port of Turku
+# Port of Turku
+
+[Source](https://www.portofturku.fi/en/)
 
 ![alt text](https://github.com/iva-mlops-program/weather-prediction/blob/deepchecks/port_of_turku.jpg?raw=true)
 
-[Source](https://www.portofturku.fi/en/)
