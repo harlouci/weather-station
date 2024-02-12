@@ -1,6 +1,7 @@
 import os
 import re
 from minio import Minio
+from pathlib import Path
 #import fsspec
 from weather.pipelines.definitions import (
     MINIO_ACCESS_KEY,
@@ -39,6 +40,15 @@ def write_dataframe_to_minio(df, bucket, filename):
     if not found:
        minio_client.make_bucket(bucket)
     minio_client.fput_object(bucket, filename, data_path)
+
+
+def write_file_to_minio(bucket, filepath:Path):
+    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+    found = minio_client.bucket_exists(bucket)
+    if not found:
+        minio_client.make_bucket(bucket)
+    minio_client.fput_object(bucket, filepath.name, filepath)
+
 
 # Files deleter
 

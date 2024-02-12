@@ -123,12 +123,10 @@ services:
       - MINIO_SECRET_KEY=minio8858
       - MINIO_API_HOST=host.docker.internal:31975
       - SIMULATION_RAW_DATA_MINIO_FILE_BUCKET=simul
-      - USER_PHONES_MINIO_FILE_PATH=s3://user/phones.txt
+      - USER_MINIO_FILE_BUCKET=user
       - START_DEV_RAW_DATA_MINIO_FILE_BUCKET=dev
       - START_PROD_RAW_DATA_MINIO_FILE_BUCKET=prod
-      - START_MODEL_MINIO_FILE_PATH=s3://model/model.pkl
-      - START_FEATURE_TRANSFORMER_MINIO_FILE_PATH=s3://model/predictors_feature_eng_pipeline.pkl
-      - START_DATASET_INGESTION_TRANSFORMER_MINIO_FILE_PATH=s3://model/dataset_ingestion_pipeline.pkl
+      - START_MODEL_MINIO_FILE_BUCKET=model
       - SCRATCH_DIR=/scratch
     build:
       dockerfile: Dockerfile.populate-bucket
