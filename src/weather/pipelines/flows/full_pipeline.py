@@ -17,7 +17,7 @@ from weather.data.prep_datasets import (
     prepare_binary_classification_tabular_data,
 )
 from weather.data.minio_utilities import(
-    extract_most_recent_filename,
+    extract_most_recent_filename_if_any,
     write_dataframe_to_minio,
     delete_files_in_minio,
 )
@@ -253,7 +253,8 @@ def automated_pipeline(
     ## 1) Extract data from prod bucket
     df, ds_info = raw_data_extraction(prod_bucket) # csv files of bucket prod, merged in a random order
     if df.empty:
-        run_logger.info("The production bucket is empty.")
+        run_logger.info("The production bucket is empty. ")
+        return
     run_logger.info(f"The production bucket contains the following data files: {ds_info}")
 
     # 2) Ingest df
@@ -273,31 +274,31 @@ def automated_pipeline(
     # if not validation_passed:
     #     run_logger.warning('Failed data validation. See artifacts or GX UI for more details.')
 
-    ## 4) Save df as last(##-##-##)_data.csv in dev_bucket (which now contains dev.csv, last(##-##-##)_data.csv)
-    if not df.empty:
-        filename = extract_most_recent_filename(ds_info)
-        write_dataframe_to_minio(df, dev_bucket, filename)
-        #run_logger.info(f"Filepath: {os.path.join(dev_bucket, filename)}")
-        run_logger.info(f"Content of prod bucket saved in dev bucket as {filename}")
-
-    # 5) Clean prod bucket:
-    delete_files_in_minio(prod_bucket, list(ds_info))
+    ## 4) Save df as last(##-##-##)_data.csv in dev_bucket (which now contains weather_dataset_raw_development.csv, last(##-##-##)_data.csv)
+    df_filename = extract_most_recent_filename_if_any(ds_info, "data")
+    write_dataframe_to_minio(df, dev_bucket, df_filename)
+    #run_logger.info(f"Filepath: {os.path.join(dev_bucket, filename)}")
+    run_logger.info(f"Content of prod bucket saved in dev bucket as {df_filename}") 
         
+    # 5) Clean prod bucket:
+    delete_files_in_minio(prod_bucket, list(ds_info)) 
+    run_logger.info(f"Files {list(ds_info)} deleted from prod bucket.")    
+
     ## 6) Extract data from dev bucket
-    df, ds_info = raw_data_extraction(dev_bucket) # list_csv_files = [dev.csv, last(##-##-##)_data.csv]
-    if df.empty:
-        run_logger.info("The development bucket is empty.")
+    df, ds_info = raw_data_extraction(dev_bucket) # list_csv_files = [weather_dataset_raw_development.csv, last(##-##-##)_data.csv]
     run_logger.info(f"The development bucket contains the following data files: {ds_info}")
 
-    ## 7) Save df as last(##-##-##)_dev.csv in dev_bucket 
-    if not df.empty:
-        filename = extract_most_recent_filename(ds_info)
-        filename = filename[10]+"_dev.csv"
-        write_dataframe_to_minio(df, dev_bucket, filename)
-        logging.info(f"Prod bucket data saved in dev bucket, under as {filename}")
+    ## 7) Save df as weather_dataset_raw_development.csv in dev_bucket 
+    df_filename = "weather_dataset_raw_development.csv"
+    write_dataframe_to_minio(df, dev_bucket, df_filename)
+    run_logger.info(f"File {df_filename} saved in dev bucket.")
 
     ## 8) clean dev bucket:
+    del ds_info["weather_dataset_raw_development.csv"]
     delete_files_in_minio(dev_bucket, list(ds_info))
+    run_logger.info(f"Files {list(ds_info)} deleted from dev bucket.")  
+
+    run_logger.info("STOP--STOP--STOP--STOP-STOP!!!!")
 
     ## 9) Ingest,transform, and split df
     # Ingest

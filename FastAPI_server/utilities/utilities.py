@@ -63,7 +63,7 @@ def save_current_chunk(prod_bucket, current_chunk, date):
     filename = f"{date}_weather_dataset_raw_production.csv"
     filepath = os.path.join(prod_bucket,  filename)
     logging.info(f"Filepath saving with Minio: {filepath}")
-    with fsspec.open(filepath, mode="wb") as f:
+    with fsspec.open(filepath, mode="wb") as f: 
         current_chunk.df.to_csv(f, header=True)
          
 def get_date(current_df):

@@ -65,6 +65,7 @@ services:
       - MINIO_SECRET_KEY=minio8858
       - MINIO_API_HOST=host.docker.internal:31975  
       - SERVER_API_URL=http://server-fastapi:8000/reload
+      - SCRATCH_DIR=/scratch # TODO: 11H
     depends_on:
       - prefect-server
       - mlflow
