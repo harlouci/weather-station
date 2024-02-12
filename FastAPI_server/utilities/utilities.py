@@ -56,13 +56,13 @@ def save_current_chunk(prod_bucket, current_chunk, date):
     if current_chunk.df is None:
         return
     
-    logging.info('Here the basic path 3 !!!!! : '+str(prod_bucket))
+    logging.debug('Here the basic path 3 !!!!! : '+str(prod_bucket)) # TODO: remove or change message
 
     date = date.strftime("%Y-%m-%d")
 
     filename = f"{date}_weather_dataset_raw_production.csv"
-    import os
     filepath = os.path.join(prod_bucket,  filename)
+    logging.info(f"Filepath saving with Minio: {filepath}")
     with fsspec.open(filepath, mode="wb") as f:
         current_chunk.df.to_csv(f, header=True)
          

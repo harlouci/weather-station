@@ -120,7 +120,7 @@ def load_dataset_from_localfs(
 
 def load_prep_dataset_from_minio(
     minio_client,
-    data_bucket: str = "reference-data",
+    data_bucket: str = "dev",
 ) -> Dataset:
 
     d = Dataset(
@@ -139,11 +139,18 @@ def load_raw_datasets_from_minio(
     minio_client,
     data_bucket: str = "current-data"
 ):
+    """Read all ##-##-##_weather_dataset_raw_production.csv files into a list of pd.DataFrame,
+    Return `dataframes` and dictionary `ds_info`, with the csv file name as key, 
+    the csv file length as value.
+    """
     dataframes = []
     ds_info = {}
     objects = minio_client.list_objects(data_bucket)
     for obj in objects:
         name = obj.object_name
+        filename_suffix = name.split(".")[-1]
+        if filename_suffix != "csv":
+            continue
         obj = minio_client.get_object(
             data_bucket,
             obj.object_name,

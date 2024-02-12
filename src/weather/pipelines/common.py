@@ -98,9 +98,9 @@ def log_metrics(score_dict: Dict[str, float|str]):
 def raw_data_extraction(curr_data_bucket: str) -> pd.DataFrame:
     minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
                          secret_key=MINIO_SECRET_KEY, secure=False)
-    dataframes, _ = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
+    dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
     raw_data = pd.concat(dataframes, ignore_index=True)
-    return raw_data
+    return raw_data, ds_info
 
 @task
 def prep_data_construction(

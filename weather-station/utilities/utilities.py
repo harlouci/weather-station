@@ -52,8 +52,8 @@ def post_data(api_url, json):
 def log_reponse(response):
     if response and response.status_code == 200:
         # API call was successful, process the response
-        data = response.json()
-        logging.info(f"API Response: {data}")
+        weather_forecast = response.json()
+        logging.info(f"API Response: {weather_forecast}")
     elif response is not None:
         # Handle other HTTP status codes (e.g., 404, 500, etc.) as needed
         logging.error(f"API Request Failed. Status code: {response.status_code}")

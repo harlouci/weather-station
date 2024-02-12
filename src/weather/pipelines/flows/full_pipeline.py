@@ -1,6 +1,5 @@
 import logging
 import warnings
-
 warnings.filterwarnings("ignore")
 from time import time
 from typing import Callable
@@ -12,7 +11,16 @@ from prefect import flow, task
 from prefect.artifacts import create_link_artifact
 from prefect.logging import get_run_logger
 from sklearn.ensemble import RandomForestClassifier
-from weather.data.prep_datasets import Dataset
+from weather.data.prep_datasets import (
+    Dataset,
+    transform_dataset_and_create_target,
+    prepare_binary_classification_tabular_data,
+)
+from weather.data.minio_utilities import(
+    extract_most_recent_filename,
+    write_dataframe_to_minio,
+    delete_files_in_minio,
+)
 from weather.mlflow.registry import (
     get_model_version_by_stage,
     register_model_from_run,
@@ -51,9 +59,7 @@ from weather.transformers.skl_transformer_makers import (
 )
 
 
-# N.B.: Note that we removed the feature_names
-# N.B.: Note that due to how the hyperparameter tuning is done, we need to repeat
-#       most steps.
+
 def build_training_and_evaluation_func(
     model_family,
     data: Dataset,
@@ -213,16 +219,16 @@ def tune(
 
 @flow(name="full-pipeline", on_completion=[stop_mlflow_run])
 def automated_pipeline(
-    ref_data_bucket: str = "dev",
-    curr_data_bucket: str = "prod",
-    max_runs: int = 1, # Higher and the better the hyperparameters exploration
+    dev_bucket: str = "dev",
+    prod_bucket: str = "prod",
+    max_runs: int = 1,  
     mlflow_experiment_name: str = "tune_randome_forest_with_full_pipeline",
 ):
-    """Replaces experiments with HP tuning."""
-    ######################################
-    # Run setup
-    ######################################
-    # MLFlow setup
+    """TODO:
+    max_runs: The higher and the better forhyperparameters exploration
+    Replaces experiments with HP tuning."""
+
+    ## MLFlow setup
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     unique_experiment_name = mlflow_experiment_name + "_" + str(int(time()))
     current_experiment = mlflow.set_experiment(experiment_name=unique_experiment_name)
@@ -232,50 +238,89 @@ def automated_pipeline(
     pipeline_experiment_bag["mlflow_experiment_name"] = current_experiment.name
     pipeline_experiment_bag["mlflow_experiment_id"] = current_experiment.experiment_id
     pipeline_experiment_bag["prefect_run_name"] = prefect.runtime.flow_run.get_name()
+    
+    # These are visible in the worker
+    logging.info(mlflow.get_tracking_uri())
 
+    ## Prefect setup
     create_link_artifact(make_mlflow_artifact_uri(pipeline_experiment_bag["mlflow_experiment_id"]))
 
     # Logging setup
     run_logger = get_run_logger()
     # These are visible in the API Server
     run_logger.info("Hi, I'm Prefect, your automated pipeline runner.")
-    # These are visible in the worker
-    logging.info(mlflow.get_tracking_uri())
 
-    ######################################
-    # Data Extraction
-    ######################################
-    df = raw_data_extraction(curr_data_bucket) # e.g.  "2011-01-01_weather_dataset_raw_production.csv"
+    ## 1) Extract data from prod bucket
+    df, ds_info = raw_data_extraction(prod_bucket) # csv files of bucket prod, merged in a random order
+    if df.empty:
+        run_logger.info("The production bucket is empty.")
+    run_logger.info(f"The production bucket contains the following data files: {ds_info}")
 
-    # Data ingestion
+    # 2) Ingest df
     dataset_ingestion_transformer = make_dataset_ingestion_transformer(target_choice, oldnames_newnames_dict)
-    ingested_df = dataset_ingestion_transformer.transform(df) # TODO: orphan
-    ######################################
-    # Data Validation
-    ######################################
+    ingested_df = dataset_ingestion_transformer.transform(df)
+
+    # 3) Data Validation with Deepchecks
+    """ send_model_to_production = TRUE
+       if deepchecks fail:
+           print("MESSAGE")
+           send_model_to_production = FALSE
+           save_data_elsewhere...
+           etc. (ex: if weather-station not working, then stop pipeline)
+    """
     # TODO: create  version deepchecks
     # validation_passed = data_validation(ingested_df)
     # if not validation_passed:
     #     run_logger.warning('Failed data validation. See artifacts or GX UI for more details.')
 
-    ######################################
-    # Create dataset dev + 2011-01-01_prod
-    ######################################
+    ## 4) Save df as last(##-##-##)_data.csv in dev_bucket (which now contains dev.csv, last(##-##-##)_data.csv)
+    if not df.empty:
+        filename = extract_most_recent_filename(ds_info)
+        write_dataframe_to_minio(df, dev_bucket, filename)
+        #run_logger.info(f"Filepath: {os.path.join(dev_bucket, filename)}")
+        run_logger.info(f"Content of prod bucket saved in dev bucket as {filename}")
 
+    # 5) Clean prod bucket:
+    delete_files_in_minio(prod_bucket, list(ds_info))
+        
+    ## 6) Extract data from dev bucket
+    df, ds_info = raw_data_extraction(dev_bucket) # list_csv_files = [dev.csv, last(##-##-##)_data.csv]
+    if df.empty:
+        run_logger.info("The development bucket is empty.")
+    run_logger.info(f"The development bucket contains the following data files: {ds_info}")
+
+    ## 7) Save df as last(##-##-##)_dev.csv in dev_bucket 
+    if not df.empty:
+        filename = extract_most_recent_filename(ds_info)
+        filename = filename[10]+"_dev.csv"
+        write_dataframe_to_minio(df, dev_bucket, filename)
+        logging.info(f"Prod bucket data saved in dev bucket, under as {filename}")
+
+    ## 8) clean dev bucket:
+    delete_files_in_minio(dev_bucket, list(ds_info))
+
+    ## 9) Ingest,transform, and split df
+    # Ingest
+    ingested_df = dataset_ingestion_transformer.transform(df) 
+
+    # Transform
     remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
     target_creation_transformer = make_target_creation_transformer(target_choice)
-
-    dataset, ds_info = prep_data_construction(           # This dataset is the new dev, consisting of dev + 2011-01-01_prod
-        ref_data_bucket,                                 # bucket dev
-        curr_data_bucket,                                # bucket prod, files 2011-01-01-prod, 2011-01-02-prod,...
+    transformed_data, created_target = transform_dataset_and_create_target(
+        ingested_df,   
         dataset_ingestion_transformer,
         remove_horizonless_rows_transformer,
         target_creation_transformer,
     )
-                                                                     #
-    ######################################
-    # Training with hyperparameter search on data "dev + 2011-01-01_prod"
-    #####################################
+
+    # Split
+    dataset = prepare_binary_classification_tabular_data(
+        transformed_data,
+        created_target,
+    )
+
+    ## 10) Train with hyperparameter tuning
+    #######################################
     tune(
         model_family=RandomForestClassifier,
         data=dataset,
@@ -285,22 +330,19 @@ def automated_pipeline(
         ds_info=ds_info,
     )
     
-    # Identfy current_experiment
+    ## 11) Extract best_run,  score, save, register and stage in mlflow
+    
+    # Extract best_run
     current_experiment = Experiment(
         tracking_server_uri=mlflow.get_tracking_uri(),
         name=pipeline_experiment_bag["mlflow_experiment_name"],
     )
-
-    # Get the best run of the current experiment of the current Prefect Run
-    # (we used a tag in MLFlow. We set the tag key to "prefect_run_name")
     best_run = get_best_run(
         experiment=current_experiment,
         filter_string="tags.prefect_run_name = '{}'".format(pipeline_experiment_bag["prefect_run_name"]),
     )
 
-    ######################################
-    # Scoring
-    ######################################
+    # Score
     feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run) # best(trans, model)= (trans, best model)
     score_dict = score(
         model=best_classifier_obj,
@@ -308,12 +350,9 @@ def automated_pipeline(
         transformer=feat_eng_obj, # no hyperparameters research when fitting this transformer
         metric=metric,
     )
-    run_logger.info(score_dict)
+    run_logger.info(f"Best run score: {score_dict}")
 
-    # TODO: HERE BELOW
-    ######################################
-    # Model register : register the best run, and transition it to staging
-    ######################################
+    # Register and stage (to staging)
     save_model = True
     saved_model_name = "random_forest_from_full_pipeline"
     if save_model:
@@ -322,7 +361,7 @@ def automated_pipeline(
         model_version = get_model_version_by_stage(current_experiment.tracking_server_uri, saved_model_name, "None")
         transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version)
 
-    ######################################
+    # 12) Validate model
     # Best model validation : WITH DEEPCHECK => TODO: Install deepchecks in env. Light modif to  validate_model()
     ######################################
     # result = validate_model(dataset, best_feat_eng_obj, best_classifier_obj, best_run.info.run_id)
@@ -336,14 +375,7 @@ def automated_pipeline(
     #     run_logger.info("The Model validation fails")
     #     tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
     
-    # TODO Sunday
-    # 1 - Fix writing csv files to Prod
-    # 2 - As soon as a new model is deployed to production, load it into FastAPI_server/app.py, at "reload" endpoint
-    # 3 - Fix data validation and model validation via deepchecks.
-    # 4 - Play with pipeline: vary max_runs, timeloop's timedelta, cronjob, max_number_of_rows, days/months.
-    ######################################
-    # Best model deployment
-    ######################################
+    ## 13) Deploy model
     should_deploy = True
     if should_deploy:
         transition_model_to_production(current_experiment.tracking_server_uri, saved_model_name, model_version)

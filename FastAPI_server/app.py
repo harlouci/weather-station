@@ -44,9 +44,9 @@ model_stage = os.getenv("MODEL_STAGE")
 model_name = os.getenv("MODEL_NAME")
 model_folder = Path(os.getenv("MODEL_DIR")) #mounted folder for now, moving to mlflow soon
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logging.info('Here the basic path 1 !!!!! : '+str(prod_bucket))
-logging.info('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # TODO: remove or change
+logging.debug('Here the basic path 1 !!!!! : '+str(prod_bucket))
+logging.debug('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
 
 app = FastAPI()    
 
@@ -100,7 +100,7 @@ async def predict(item: Item):
 
     previous_item_df, previous_day, previous_date = new_item_df, new_day, new_date
 
-    if y==1:
+    if y==2: # TODO: change it
         if send_message:
             send_messages(phones, twilio_client, twilio_phone)
             print("It will rain!")

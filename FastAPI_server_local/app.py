@@ -53,8 +53,8 @@ else:
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logging.info('Here the basic path 1 !!!!! : '+str(prod_bucket))
-logging.info('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
+logging.debug('Here the basic path 1 !!!!! : '+str(prod_bucket))
+logging.debug('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
 
 app = FastAPI()    
 
