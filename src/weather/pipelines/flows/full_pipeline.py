@@ -223,7 +223,7 @@ def automated_pipeline(
     dev_bucket: str = "dev",
     prod_bucket: str = "prod",
     max_runs: int = 1,  
-    mlflow_experiment_name: str = "tune_randome_forest_with_full_pipeline",
+    mlflow_experiment_name: str = "tune_random_forest_with_full_pipeline",
 ):
     """TODO:
     max_runs: The higher and the better forhyperparameters exploration
@@ -348,7 +348,7 @@ def automated_pipeline(
 
     # Register and stage (to staging)
     save_model = True
-    saved_model_name = "random_forest_from_full_pipeline"
+    saved_model_name = "random_forest"
     if save_model:
         run_logger.info("Saving model named: %s", saved_model_name)
         register_model_from_run(current_experiment.tracking_server_uri, best_run, saved_model_name)

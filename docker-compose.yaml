@@ -63,7 +63,7 @@ services:
       - MLFLOW_TRACKING_URI=http://host.docker.internal:5000
       - MINIO_ACCESS_KEY=minio7777
       - MINIO_SECRET_KEY=minio8858
-      - MINIO_API_HOST=host.docker.internal:31975  
+      - MINIO_API_HOST=host.docker.internal:31975
       - SERVER_API_URL=http://host.docker.internal:6000/reload
       - SCRATCH_DIR=/scratch # TODO: 11H
     depends_on:
@@ -71,6 +71,7 @@ services:
       - mlflow
       - minio
       - server-fastapi
+      - populate-bucket
   server-fastapi:
     environment:
       - FSSPEC_S3_KEY=minio7777
@@ -97,6 +98,7 @@ services:
       - ./models:/models
     depends_on:
       - minio
+      - populate-bucket
   weather-station:
     environment:
       - FAST_API_URL=http://host.docker.internal:6000/predict/ # localhost can be replaced by the service name "server-fastapi"
@@ -113,4 +115,25 @@ services:
     depends_on:
       - mlflow
       - server-fastapi
+      - minio
+      - populate-bucket
+  populate-bucket:
+    environment:
+      - MINIO_ACCESS_KEY=minio7777
+      - MINIO_SECRET_KEY=minio8858
+      - MINIO_API_HOST=host.docker.internal:31975
+      - SIMULATION_RAW_DATA_MINIO_FILE_BUCKET=simul
+      - USER_MINIO_FILE_BUCKET=user
+      - START_DEV_RAW_DATA_MINIO_FILE_BUCKET=dev
+      - START_PROD_RAW_DATA_MINIO_FILE_BUCKET=prod
+      - START_MODEL_MINIO_FILE_BUCKET=model
+      - SCRATCH_DIR=/scratch
+    build:
+      dockerfile: Dockerfile.populate-bucket
+    command:
+      - python
+      - -m
+      - weather.data.populate_bucket
+    container_name: populate-bucket
+    depends_on:
       - minio
