@@ -222,7 +222,7 @@ def tune(
 def automated_pipeline(
     dev_bucket: str = "dev",
     prod_bucket: str = "prod",
-    max_runs: int = 1,  
+    max_runs: int = 10,  
     mlflow_experiment_name: str = "tune_random_forest_with_full_pipeline",
 ):
     """TODO:

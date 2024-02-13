@@ -106,7 +106,7 @@ services:
       - FSSPEC_S3_SECRET=minio8858
       - FSSPEC_S3_ENDPOINT_URL=http://host.docker.internal:31975 # do not put minio or localhost..
       - SIMULATION_RAW_DATA_MINIO_FILE_PATH=s3://simul/weather_dataset_raw_production.csv
-      - MAX_NUMBER_OF_ROWS=200
+      - MAX_NUMBER_OF_ROWS=5000
       - TIME_LOOP=1
       - LOG_LEVEL=INFO
     build:
