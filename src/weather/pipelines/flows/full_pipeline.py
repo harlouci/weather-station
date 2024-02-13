@@ -266,7 +266,7 @@ def automated_pipeline(
     # 3) Data Validation with Deepchecks
     validation_passed = validate_ingested_data(ingested_df, feature_names, target_choice)
     if not validation_passed:
-        run_logger.warning('Failed data validation. See artifacts or deepchecks UI for more details.')
+        run_logger.warning('Failed data validation. See artifacts or deepchecks UI for more details.')  # TODO: create artifacts
 
     ## 4) Save df as last(##-##-##)_data.csv in dev_bucket (which now contains weather_dataset_raw_development.csv, last(##-##-##)_data.csv)
     df_filename = extract_most_recent_filename_if_any(ds_info, "data")
