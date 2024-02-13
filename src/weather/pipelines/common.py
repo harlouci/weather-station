@@ -97,6 +97,8 @@ def raw_data_extraction(curr_data_bucket: str) -> pd.DataFrame:
     minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
                          secret_key=MINIO_SECRET_KEY, secure=False)
     dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
+    if not dataframes:
+        return pd.DataFrame(), {}
     raw_df = pd.concat(dataframes, ignore_index=True)
     return raw_df, ds_info
 
