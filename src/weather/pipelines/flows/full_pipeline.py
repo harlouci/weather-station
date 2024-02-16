@@ -6,9 +6,17 @@ from time import time
 from typing import Callable
 
 import joblib
+import mlflow
+import prefect.context
+import prefect.runtime.flow_run
 from hyperopt import fmin, hp, tpe
 from hyperopt.pyll import scope
+from mlflow.models.signature import infer_signature
+from prefect import flow, task
+from prefect.artifacts import create_link_artifact
+from prefect.logging import get_run_logger
 from sklearn.ensemble import RandomForestClassifier
+
 from weather.data.minio_utilities import (
     delete_files_in_minio,
     extract_most_recent_filename_if_any,
@@ -56,14 +64,6 @@ from weather.transformers.skl_transformer_makers import (
     make_remove_horizonless_rows_transformer,
     make_target_creation_transformer,
 )
-
-import mlflow
-import prefect.context
-import prefect.runtime.flow_run
-from mlflow.models.signature import infer_signature
-from prefect import flow, task
-from prefect.artifacts import create_link_artifact
-from prefect.logging import get_run_logger
 
 warnings.filterwarnings("ignore")
 

@@ -1,9 +1,9 @@
 import os
 
 import pandas as pd
-from weather.data.make_datasets import make_weather_prediction_dataframe
-
 from prefect import flow
+
+from weather.data.make_datasets import make_weather_prediction_dataframe
 
 
 # NOTE(PARTICIPANT): We could have added the data validation in this flow

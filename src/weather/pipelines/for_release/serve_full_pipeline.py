@@ -11,9 +11,9 @@ Running this script will create a long running process
 """
 
 # from weather.pipelines.flows.full_pipeline import automated_pipeline
-from weather.pipelines.flows.full_pipeline import automated_pipeline
-
 import prefect
+
+from weather.pipelines.flows.full_pipeline import automated_pipeline
 
 if __name__ == "__main__":
     # NOTE(Participant): This will make Prefect available to run the deployments

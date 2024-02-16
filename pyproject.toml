@@ -17,9 +17,9 @@ line-length = 120
 
 [tool.ruff]
 # TODO: Eventually lint our entire repository with this enabled
-# Allows to consider bank_marketing (our package) as first-party package
+# Allows to consider weather-prediction (our package) as first-party package
 # resulting in correctly detected import [order].
-# src = ["src"]
+src = ["src"]
 
 # We select almost everything by default.
 # You are expected to add/remove what you find relevant

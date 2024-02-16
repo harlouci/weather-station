@@ -4,6 +4,7 @@ import warnings
 from typing import Dict
 
 import joblib
+import mlflow
 import pandas as pd
 import requests
 import sklearn.pipeline
@@ -13,6 +14,8 @@ from deepchecks.tabular.suites import (
     model_evaluation,
 )
 from minio import Minio
+from prefect import task
+
 from weather.data.load_datasets import (
     load_prep_dataset_from_minio,
     load_raw_datasets_from_minio,
@@ -34,9 +37,6 @@ from weather.pipelines.definitions import (
     MINIO_SECRET_KEY,
     SERVER_API_URL,
 )
-
-import mlflow
-from prefect import task
 
 warnings.filterwarnings("ignore")
 
