@@ -1,15 +1,19 @@
+import os
+
+from dotenv import load_dotenv
 from minio import Minio
 
-# Replace these with your actual credentials and URL
-MINIO_ENDPOINT_URL = "http://127.0.0.1:31975"
-MINIO_ACCESS_KEY = "minio7777"
-MINIO_SECRET_KEY = "minio8858"
+load_dotenv(".env")
+
+MINIO_ENDPOINT_URL = os.getenv("MINO_ACCESS_KEY")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 
 minio_client = Minio(
     MINIO_ENDPOINT_URL,
     access_key=MINIO_ACCESS_KEY,
     secret_key=MINIO_SECRET_KEY,
-    secure=False  # Set to True if using HTTPS
+    secure=False,  # Set to True if using HTTPS
 )
 
 # Attempt a simple operation to verify connectivity

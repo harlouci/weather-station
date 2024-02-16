@@ -10,12 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from prettytable import PrettyTable
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
     accuracy_score,
     confusion_matrix,
-    ConfusionMatrixDisplay,
-    f1_score,
-    precision_score,
-    recall_score,
 )
 from sklearn.pipeline import Pipeline
 from weather.data.prep_datasets import Dataset
@@ -254,10 +251,8 @@ def accuracy_evaluation(
     }
 
 
-
-
-
 # 4. Train model and evaluate score with accuracy_evaluation()
+
 
 def score_evaluation_dict(
     score,
@@ -304,6 +299,7 @@ def score_evaluation_dict(
         "test": round(test_score, decimals),
     }
 
+
 def print_score_dict_results(results: List[Dict[str, str | float]] | Dict[str, str | float]) -> None:
     """Print the accuracy scoring results as pretty tables
 
@@ -349,12 +345,15 @@ def train_and_evaluate(
             predictors_feature_engineering_transformer.fit_transform(data.train_x),
             data.train_y,
         )
-        results.append({"model": classifier.__name__, 
-                        **score_evaluation_dict(
-                            score,
-                            predictors_feature_engineering_transformer,
-                            classifier_obj, 
-                            data,
-                            )
-                        })
+        results.append(
+            {
+                "model": classifier.__name__,
+                **score_evaluation_dict(
+                    score,
+                    predictors_feature_engineering_transformer,
+                    classifier_obj,
+                    data,
+                ),
+            }
+        )
     return results

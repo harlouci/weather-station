@@ -1,4 +1,5 @@
 """Includes functions to prepare datasets for ML applications."""
+
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,7 +40,6 @@ class Dataset:
     def concatenate_train_and_val_splits(self):
         self.train_val_x = pd.concat([self.train_x, self.val_x])
         self.train_val_y = pd.concat([self.train_y, self.val_y])
-
 
     def merge_in(self, dataset):
         self.train_x = pd.concat([self.train_x, dataset.train_x], axis=0)
@@ -117,6 +117,7 @@ def prepare_binary_classification_tabular_data(
     )
     return dataset
 
+
 def prepare_binary_classfication_tabular_data_from_splits(
     csv_dirpath: str,
     predictors: List[str],
@@ -144,19 +145,24 @@ def prepare_binary_classfication_tabular_data_from_splits(
     for fname in os.listdir(csv_dirpath):
         if not fname.endswith(".csv"):
             continue
-        fpath = os.path.join(csv_dirpath, fname)
+        fpath = Path(csv_dirpath) / fname
         data_frame = pd.read_csv(fpath)
         if dataset is not None:
-            dataset.merge_in(prepare_binary_classification_tabular_data(data_frame, predictors, predicted,
-                                                                       pos_neg_pair, splits_sizes, seed))
+            dataset.merge_in(
+                prepare_binary_classification_tabular_data(
+                    data_frame, predictors, predicted, pos_neg_pair, splits_sizes, seed
+                )
+            )
         else:
-            dataset = prepare_binary_classification_tabular_data(data_frame, predictors, predicted,
-                                                                pos_neg_pair, splits_sizes, seed)
+            dataset = prepare_binary_classification_tabular_data(
+                data_frame, predictors, predicted, pos_neg_pair, splits_sizes, seed
+            )
     return dataset
 
+
 def prepare_and_merge_splits_to_dataset(
-    dataset, # dev dataset
-    dataframes, # e.g. [2011-01-01_raw_prod.df]
+    dataset,  # dev dataset
+    dataframes,  # e.g. [2011-01-01_raw_prod.df]
     dataset_ingestion_transformer,
     remove_horizonless_rows_transformer,
     target_creation_transformer,

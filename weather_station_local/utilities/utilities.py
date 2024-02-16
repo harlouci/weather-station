@@ -1,5 +1,6 @@
 import logging
 import time
+
 import fsspec
 import pandas as pd
 import requests
@@ -7,9 +8,9 @@ from pydantic import BaseModel
 
 
 class Item(BaseModel):
-    S_No:int
-    Timestamp:str= ""
-    Location:str
+    S_No: int
+    Timestamp: str = ""
+    Location: str
     Temperature_C: float = None
     Apparent_Temperature_C: float = None
     Humidity: float = None
@@ -19,9 +20,11 @@ class Item(BaseModel):
     Pressure_millibars: float = None
     Weather_conditions: str = ""
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def pop_first_row(df:pd.DataFrame):
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+
+def pop_first_row(df: pd.DataFrame):
     if not df.empty:
         first_row = df.iloc[0].copy()
         df.drop(0, inplace=True)
@@ -34,16 +37,16 @@ def pop_first_row(df:pd.DataFrame):
 
 def load_simulated_data(file_path, max_number_of_rows, max_retries=20, delay_seconds=1):
     """
-            Attempt to load data from a file up to a maximum number of retries.
+    Attempt to load data from a file up to a maximum number of retries.
 
-            Parameters:
-            - data_file: The path to the data file to load.
-            - max_retries: The maximum number of attempts to try loading the data.
-            - delay_seconds: The delay between retry attempts in seconds.
+    Parameters:
+    - data_file: The path to the data file to load.
+    - max_retries: The maximum number of attempts to try loading the data.
+    - delay_seconds: The delay between retry attempts in seconds.
 
-            Returns:
-            - The loaded DataFrame if successful, None otherwise.
-            """
+    Returns:
+    - The loaded DataFrame if successful, None otherwise.
+    """
     for attempt in range(max_retries):
         try:
             with fsspec.open(file_path) as f:
@@ -51,13 +54,13 @@ def load_simulated_data(file_path, max_number_of_rows, max_retries=20, delay_sec
             logging.info(f"Data loaded successfully on attempt {attempt + 1}.")
             break
         except Exception as e:
-            logging.error(f"Attempt {attempt + 1} failed with error: {e}")
+            logging.exception(f"Attempt {attempt + 1} failed with error: {e}")
             if attempt < max_retries - 1:
                 logging.info(f"Retrying in {delay_seconds} seconds...")
                 time.sleep(delay_seconds)
             else:
-                logging.error("Maximum retries reached. Failed to load data.")
-    df =df.head(max_number_of_rows)
+                logging.exception("Maximum retries reached. Failed to load data.")
+    df = df.head(max_number_of_rows)
     df.reset_index(inplace=True, drop=True)
     return df
 
@@ -68,7 +71,7 @@ def post_data(api_url, json):
         response = requests.post(api_url, json=json)
     except requests.exceptions.RequestException as e:
         # Handle connection errors or exceptions
-        logging.error(f"Error connecting to the API: {e}")
+        logging.exception(f"Error connecting to the API: {e}")
         response = None
     return response
 
@@ -87,10 +90,7 @@ def get_json_to_send_from(df):
     row = pop_first_row(df)
     if row is None:
         print("no data to send anymore!")
-        return
+        return None
     row = row.fillna("")
     item_data = Item(**row.to_dict())
     return item_data.dict()
-
-
-

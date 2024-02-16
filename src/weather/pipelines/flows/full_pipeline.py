@@ -1,30 +1,28 @@
 import logging
+import os
+import tempfile
 import warnings
-warnings.filterwarnings("ignore")
 from time import time
 from typing import Callable
 
-import mlflow
-import prefect.context
-import prefect.runtime.flow_run
-from prefect import flow, task
-from prefect.artifacts import create_link_artifact
-from prefect.logging import get_run_logger
+import joblib
+from hyperopt import fmin, hp, tpe
+from hyperopt.pyll import scope
 from sklearn.ensemble import RandomForestClassifier
-from weather.data.prep_datasets import (
-    Dataset,
-    transform_dataset_and_create_target,
-    prepare_binary_classification_tabular_data,
-)
-from weather.data.minio_utilities import(
+from weather.data.minio_utilities import (
+    delete_files_in_minio,
     extract_most_recent_filename_if_any,
     write_dataframe_to_minio,
-    delete_files_in_minio,
+)
+from weather.data.prep_datasets import (
+    Dataset,
+    prepare_binary_classification_tabular_data,
+    transform_dataset_and_create_target,
 )
 from weather.mlflow.registry import (
-    tag_model,
     get_model_version_by_stage,
     register_model_from_run,
+    tag_model,
     transition_model_to_production,
     transition_model_to_staging,
 )
@@ -32,18 +30,18 @@ from weather.mlflow.tracking import (
     Experiment,
     get_best_run,
 )
+from weather.models.skl_tracked_train_models import SKLModelWrapper
 from weather.pipelines.common import (
-    validate_ingested_data, 
-    validate_model,
     deploy,
     fit_transformer,
     load_artifacts_from_mlflow,
     log_metrics,
     make_mlflow_artifact_uri,
-    prep_data_construction,
     raw_data_extraction,
     score,
     stop_mlflow_run,
+    validate_ingested_data,
+    validate_model,
 )
 from weather.pipelines.definitions import (
     MLFLOW_TRACKING_URI,
@@ -59,6 +57,15 @@ from weather.transformers.skl_transformer_makers import (
     make_target_creation_transformer,
 )
 
+import mlflow
+import prefect.context
+import prefect.runtime.flow_run
+from mlflow.models.signature import infer_signature
+from prefect import flow, task
+from prefect.artifacts import create_link_artifact
+from prefect.logging import get_run_logger
+
+warnings.filterwarnings("ignore")
 
 
 def build_training_and_evaluation_func(
@@ -66,31 +73,25 @@ def build_training_and_evaluation_func(
     data: Dataset,
     experiment_bag: dict,
     metric: Callable,
-    random_state = 1234,
+    random_state=1234,
 ):
     """Create a new evaluation function and returns it."""
 
     def train_eval_func(hparams):
-        """ Train, evaluate and log an sklearn model with given parameters by invoking MLflow run.
+        """Train, evaluate and log an sklearn model with given parameters by invoking MLflow run.
 
-        Set an mlflow run with `experiment_bag` identifiers. 
+        Set an mlflow run with `experiment_bag` identifiers.
         Train a RF model with given `hparams`, `random_state`, `data`, `metric`.
         Eval the trained model and  return -score_dict["val"].
         """
-        import os
-        import tempfile
-
-        import joblib
-        from weather.models.skl_tracked_train_models import SKLModelWrapper
-
-        from mlflow.models.signature import infer_signature
 
         ## 1 - Set an mlflow run with `experiment_bag` identifiers
         with mlflow.start_run(
             experiment_id=experiment_bag["mlflow_experiment_id"]
         ), tempfile.TemporaryDirectory() as temp_d:
             # Utility method to make things shorter
-            tmp_fpath = lambda fpath: os.path.join(temp_d, fpath) 
+            def tmp_fpath(fpath):
+                return os.path.join(temp_d, fpath)
 
             # NOTE(Participant): This was added
             # N.B. We set a tag name so we can differentiate which Prefect run caused this
@@ -106,12 +107,10 @@ def build_training_and_evaluation_func(
                 target_choice,
             )
             # predictors_feature_engineering_transformer.fit(data.train_x)
-            fit_transformer.fn(
-                predictors_feature_engineering_transformer, dataset=data)
-            joblib.dump(predictors_feature_engineering_transformer,
-                        tmp_fpath("predictors_feature_eng_pipeline.joblib"))
-            
-            # Pass the parameters used to train RF into dictionary 
+            fit_transformer.fn(predictors_feature_engineering_transformer, dataset=data)
+            joblib.dump(predictors_feature_engineering_transformer, tmp_fpath("predictors_feature_eng_pipeline.joblib"))
+
+            # Pass the parameters used to train RF into dictionary
             (max_depth, max_features, class_weight, min_samples_leaf) = hparams
             rf_params = {
                 "max_depth": max_depth,
@@ -131,12 +130,14 @@ def build_training_and_evaluation_func(
 
             # Get model signature
             sample = data.train_x.sample(3)
-            signature = infer_signature(data.train_x.head(),
-                                        classifier_obj.predict(train_inputs))
+            signature = infer_signature(data.train_x.head(), classifier_obj.predict(train_inputs))
             # Log Model
             artifacts = {
-                "feature_eng_path": tmp_fpath("predictors_feature_eng_pipeline.joblib"), # cannot change name of the dictionary because used by mlflow
-                "model_path": tmp_fpath("model.joblib")}
+                "feature_eng_path": tmp_fpath(
+                    "predictors_feature_eng_pipeline.joblib"
+                ),  # cannot change name of the dictionary because used by mlflow
+                "model_path": tmp_fpath("model.joblib"),
+            }
             mlflow_pyfunc_model_path = "classifier"
             mlflow.pyfunc.log_model(
                 artifact_path=mlflow_pyfunc_model_path,
@@ -176,27 +177,23 @@ def build_training_and_evaluation_func(
 def tune(
     model_family,
     data: Dataset,
-    metric: Callable, # alias for score
-    max_runs, 
+    metric: Callable,  # alias for score
+    max_runs,
     experiment_bag,
     ds_info,
-
 ) -> None:
     """
-    Run hyperparameter optimization on space defined within the code, for parameters 
+    Run hyperparameter optimization on space defined within the code, for parameters
     specific to RandomForestClassifer.
     TODO: Hyperparameters space defined within the code. Should be defined elsewhere.
     """
-    from hyperopt import fmin, hp, tpe
-    from hyperopt.pyll import scope
 
     # Just a shortcut to both:
     #    1) Set current experiment and
     #    2) save the variable for experiment_id
     # For now, this is unused (the local functions will call set_experiment themselves)
-    experiment_id = mlflow.set_experiment(
-        experiment_id=experiment_bag["mlflow_experiment_id"]).experiment_id
-    
+    _ = mlflow.set_experiment(experiment_id=experiment_bag["mlflow_experiment_id"]).experiment_id
+
     # Search space for RF
     space = [
         scope.int(hp.quniform("max_depth", 1, 30, q=1)),
@@ -222,7 +219,7 @@ def tune(
 def automated_pipeline(
     dev_bucket: str = "dev",
     prod_bucket: str = "prod",
-    max_runs: int = 10,  
+    max_runs: int = 10,
     mlflow_experiment_name: str = "tune_random_forest_with_full_pipeline",
 ):
     """TODO:
@@ -239,7 +236,7 @@ def automated_pipeline(
     pipeline_experiment_bag["mlflow_experiment_name"] = current_experiment.name
     pipeline_experiment_bag["mlflow_experiment_id"] = current_experiment.experiment_id
     pipeline_experiment_bag["prefect_run_name"] = prefect.runtime.flow_run.get_name()
-    
+
     # These are visible in the worker
     logging.info(mlflow.get_tracking_uri())
 
@@ -252,7 +249,7 @@ def automated_pipeline(
     run_logger.info("Hi, I'm Prefect, your automated pipeline runner.")
 
     ## 1) Extract data from prod bucket
-    df, ds_info = raw_data_extraction(prod_bucket) # csv files of bucket prod, merged in a random order
+    df, ds_info = raw_data_extraction(prod_bucket)  # csv files of bucket prod, merged in a random order
     if df.empty:
         run_logger.info("The production bucket is empty.")
         return
@@ -266,24 +263,28 @@ def automated_pipeline(
     # 3) Data Validation with Deepchecks
     validation_passed = validate_ingested_data(ingested_df, feature_names, target_choice)
     if not validation_passed:
-        run_logger.warning('Failed data validation. See artifacts or deepchecks UI for more details.')  # TODO: create artifacts
+        run_logger.warning(
+            "Failed data validation. See artifacts or deepchecks UI for more details."
+        )  # TODO: create artifacts
 
     ## 4) Save df as last(##-##-##)_data.csv in dev_bucket (which now contains weather_dataset_raw_development.csv, last(##-##-##)_data.csv)
     df_filename = extract_most_recent_filename_if_any(ds_info, "data")
     write_dataframe_to_minio(df, dev_bucket, df_filename)
-    #run_logger.info(f"Filepath: {os.path.join(dev_bucket, filename)}")
-    run_logger.info(f"Content of prod bucket saved in dev bucket as {df_filename}") 
-        
+    # run_logger.info(f"Filepath: {os.path.join(dev_bucket, filename)}")
+    run_logger.info(f"Content of prod bucket saved in dev bucket as {df_filename}")
+
     # 5) Clean prod bucket:
-    delete_files_in_minio(prod_bucket, list(ds_info)) 
-    run_logger.info(f"Files {list(ds_info)} deleted from prod bucket.")    
+    delete_files_in_minio(prod_bucket, list(ds_info))
+    run_logger.info(f"Files {list(ds_info)} deleted from prod bucket.")
 
     ## 6) Extract data from dev bucket
-    df, ds_info = raw_data_extraction(dev_bucket) # list_csv_files = [weather_dataset_raw_development.csv, last(##-##-##)_data.csv]
+    df, ds_info = raw_data_extraction(
+        dev_bucket
+    )  # list_csv_files = [weather_dataset_raw_development.csv, last(##-##-##)_data.csv]
     run_logger.info(f"The development bucket contains the following data files: {ds_info}")
     run_logger.info(f"df columns in step 6: {df.columns}")
 
-    ## 7) Save df as weather_dataset_raw_development.csv in dev_bucket 
+    ## 7) Save df as weather_dataset_raw_development.csv in dev_bucket
     df_filename = "weather_dataset_raw_development.csv"
     write_dataframe_to_minio(df, dev_bucket, df_filename)
     run_logger.info(f"File {df_filename} saved in dev bucket.")
@@ -291,7 +292,7 @@ def automated_pipeline(
     ## 8) clean dev bucket:
     del ds_info["weather_dataset_raw_development.csv"]
     delete_files_in_minio(dev_bucket, list(ds_info))
-    run_logger.info(f"Files {list(ds_info)} deleted from dev bucket.")  
+    run_logger.info(f"Files {list(ds_info)} deleted from dev bucket.")
 
     run_logger.info("STOP--STOP--STOP--STOP-STOP!!!!")
 
@@ -301,7 +302,7 @@ def automated_pipeline(
     remove_horizonless_rows_transformer = make_remove_horizonless_rows_transformer(target_choice)
     target_creation_transformer = make_target_creation_transformer(target_choice)
     transformed_data, created_target = transform_dataset_and_create_target(
-        df,   
+        df,
         dataset_ingestion_transformer,
         remove_horizonless_rows_transformer,
         target_creation_transformer,
@@ -323,9 +324,9 @@ def automated_pipeline(
         experiment_bag=pipeline_experiment_bag,
         ds_info=ds_info,
     )
-    
+
     ## 11) Extract best_run,  score, save, register and stage in mlflow
-    
+
     # Extract best_run
     current_experiment = Experiment(
         tracking_server_uri=mlflow.get_tracking_uri(),
@@ -337,11 +338,13 @@ def automated_pipeline(
     )
 
     # Score
-    feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(run=best_run) # best(trans, model)= (trans, best model)
+    feat_eng_obj, best_classifier_obj = load_artifacts_from_mlflow(
+        run=best_run
+    )  # best(trans, model)= (trans, best model)
     score_dict = score(
         model=best_classifier_obj,
         dataset=dataset,
-        transformer=feat_eng_obj, # no hyperparameters research when fitting this transformer
+        transformer=feat_eng_obj,  # no hyperparameters research when fitting this transformer
         metric=metric,
     )
     run_logger.info(f"Best run score: {score_dict}")
@@ -355,7 +358,7 @@ def automated_pipeline(
         model_version = get_model_version_by_stage(current_experiment.tracking_server_uri, saved_model_name, "None")
         transition_model_to_staging(current_experiment.tracking_server_uri, saved_model_name, model_version)
 
-    # 12) Validate model    
+    # 12) Validate model
     results = validate_model(dataset, best_classifier_obj, feat_eng_obj, best_run.info.run_id)
     run_logger.info(f" {len(results.get_passed_checks())} of model tests are passed.")
     run_logger.info(f" {len(results.get_not_passed_checks())} of model tests are failed.")
@@ -366,7 +369,7 @@ def automated_pipeline(
     else:
         run_logger.info("The model validation fails.")
         tag_model(current_experiment.tracking_server_uri, saved_model_name, model_version, {"Model Tests": "FAILED"})
-    
+
     ## 13) Deploy model
     should_deploy = True
     if should_deploy:

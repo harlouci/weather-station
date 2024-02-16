@@ -1,14 +1,15 @@
-from dataclasses import dataclass
-import os
-from typing import List, Tuple
 import json
+import os
+from dataclasses import dataclass
+from typing import List, Tuple
+
 import pandas as pd
+from weather.helpers.utils import clean_temporary_dir, create_temporary_dir_if_not_exists
+
 import mlflow
-from mlflow.tracking import MlflowClient
 from mlflow.entities.run import Run
 from mlflow.pyfunc import PyFuncModel
-from weather.helpers.utils import create_temporary_dir_if_not_exists
-from weather.helpers.utils import clean_temporary_dir
+from mlflow.tracking import MlflowClient
 
 
 @dataclass
@@ -22,10 +23,12 @@ class Experiment:
     name : str
         the name of the experiment
     """
-    tracking_server_uri:str
-    name:str
 
-def load_model_from_run(tracking_server_uri:str, run:Run) -> PyFuncModel:
+    tracking_server_uri: str
+    name: str
+
+
+def load_model_from_run(tracking_server_uri: str, run: Run) -> PyFuncModel:
     """load the model stored within a given experiment run
 
     Args:
@@ -37,19 +40,17 @@ def load_model_from_run(tracking_server_uri:str, run:Run) -> PyFuncModel:
     """
     mlflow.set_tracking_uri(tracking_server_uri)
     client = MlflowClient(tracking_uri=tracking_server_uri)
-    artifact_path = json.loads(run.data.tags['mlflow.log-model.history'])[0]["artifact_path"]
+    artifact_path = json.loads(run.data.tags["mlflow.log-model.history"])[0]["artifact_path"]
     tmp_dir = create_temporary_dir_if_not_exists()
-    model_path = client.download_artifacts(run.info.run_id, 
-                                                artifact_path, 
-                                                tmp_dir)
+    model_path = client.download_artifacts(run.info.run_id, artifact_path, tmp_dir)
     model = mlflow.pyfunc.load_model(model_path)
     clean_temporary_dir()
     return model
 
-def get_best_run(experiment:Experiment, 
-                 metric:str="val_f1_score",
-                 order:str="DESC",
-                 filter_string:str="") -> Run:
+
+def get_best_run(
+    experiment: Experiment, metric: str = "val_f1_score", order: str = "DESC", filter_string: str = ""
+) -> Run:
     """Find the best experiment run entity
 
     Args:
@@ -64,13 +65,14 @@ def get_best_run(experiment:Experiment,
     return best_runs[0]
 
 
-
-def explore_best_runs(experiment:Experiment,
-                      n_runs:int=5,
-                      metric:str="val_f1_score",
-                      order:str="DESC",
-                      filter_string:str="",
-                      to_dataframe:bool=True) -> List[Run] | pd.DataFrame:
+def explore_best_runs(
+    experiment: Experiment,
+    n_runs: int = 5,
+    metric: str = "val_f1_score",
+    order: str = "DESC",
+    filter_string: str = "",
+    to_dataframe: bool = True,
+) -> List[Run] | pd.DataFrame:
     """find the best runs from the given experiment
 
     Args:
@@ -93,7 +95,7 @@ def explore_best_runs(experiment:Experiment,
         experiment_ids=experiment_id,
         max_results=n_runs,
         filter_string=filter_string,
-        order_by=[f"metrics.{metric} {order}"]
+        order_by=[f"metrics.{metric} {order}"],
     )
     if to_dataframe:
         run_ids = [run.info.run_id for run in runs if metric in run.data.metrics]
@@ -102,9 +104,12 @@ def explore_best_runs(experiment:Experiment,
         return run_dataframe
     return runs
 
-def get_raw_artifacts_from_run(tracking_server_uri, run, tmp_dir_path: os.PathLike='tmp') -> Tuple[str, str]:
+
+def get_raw_artifacts_from_run(tracking_server_uri, run, tmp_dir_path: os.PathLike = "tmp") -> Tuple[str, str]:
     client = MlflowClient(tracking_uri=tracking_server_uri)
     # We assume that our saves will be under classifier/artifacts
-    feat_eng_path = client.download_artifacts(run.info.run_id, 'classifier/artifacts/predictors_feature_eng_pipeline.joblib', tmp_dir_path)
-    model_path = client.download_artifacts(run.info.run_id, 'classifier/artifacts/model.joblib', tmp_dir_path)
+    feat_eng_path = client.download_artifacts(
+        run.info.run_id, "classifier/artifacts/predictors_feature_eng_pipeline.joblib", tmp_dir_path
+    )
+    model_path = client.download_artifacts(run.info.run_id, "classifier/artifacts/model.joblib", tmp_dir_path)
     return feat_eng_path, model_path

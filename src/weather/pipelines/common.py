@@ -2,19 +2,17 @@ import os
 import tempfile
 import warnings
 from typing import Dict
-warnings.filterwarnings("ignore")
 
 import joblib
-import mlflow
 import pandas as pd
 import requests
 import sklearn.pipeline
-
 from deepchecks.tabular import Dataset as DeepChecksDataset
-from deepchecks.tabular.suites import data_integrity
-from deepchecks.tabular.suites import model_evaluation
+from deepchecks.tabular.suites import (
+    data_integrity,
+    model_evaluation,
+)
 from minio import Minio
-from prefect import task
 from weather.data.load_datasets import (
     load_prep_dataset_from_minio,
     load_raw_datasets_from_minio,
@@ -25,8 +23,8 @@ from weather.data.prep_datasets import (
     prepare_binary_classification_tabular_data,
 )
 from weather.helpers.utils import (
-    create_temporary_dir_if_not_exists,
     clean_temporary_dir,
+    create_temporary_dir_if_not_exists,
 )
 from weather.mlflow.tracking import get_raw_artifacts_from_run
 from weather.models.skl_train_models import score_evaluation_dict
@@ -36,6 +34,11 @@ from weather.pipelines.definitions import (
     MINIO_SECRET_KEY,
     SERVER_API_URL,
 )
+
+import mlflow
+from prefect import task
+
+warnings.filterwarnings("ignore")
 
 
 def stop_mlflow_run(flow, flow_run, state):
@@ -47,7 +50,7 @@ def stop_mlflow_run(flow, flow_run, state):
     mlflow.end_run()
 
 
-def make_mlflow_artifact_uri(experiment_id: str|None = None) -> str:
+def make_mlflow_artifact_uri(experiment_id: str | None = None) -> str:
     """Generates the URI for the experiment
 
     Not that necessary.
@@ -63,44 +66,27 @@ def make_mlflow_artifact_uri(experiment_id: str|None = None) -> str:
     return urllib.parse.urljoin(mlflow.get_tracking_uri(), f"/#/experiments/{experiment_id}")
 
 
-# def make_gx_markdown_from_results(results: CheckpointResult) -> str:
-#     return f"```json\n{results.to_json_dict()}\n```"
-
-
-def log_metrics(score_dict: Dict[str, float|str]):
+def log_metrics(score_dict: Dict[str, float | str]):
     """Logs metrics to mlflow
 
     Not intended to be a prefect flow since we don't
     want to setup all the MLFlow setup. So we assume
     the MLFlow artifact tracking is set correctly.
     """
-    mlflow.log_metric("train_"+score_dict["score_name"], score_dict["train"])
-    mlflow.log_metric("val_"+score_dict["score_name"], score_dict["val"])
-    mlflow.log_metric("test_"+score_dict["score_name"], score_dict["test"])
-    # Or almost the same:
-    # mlflow.log_metrics(metrics)
-
-
-# @task
-# def load_extraction_from_dvc(dvc_block: RemoteFileSystem, dvc_remote: str|None = None) -> Tuple[pd.DataFrame, dict]:
-#     url = get_extraction_url_from_dvc(remote=dvc_remote)
-#     with dvc_block.filesystem.open(url, "rb") as f:
-#         df_extract = pd.read_csv(f, sep=";")
-
-#     dvc_info = extract_dataset_info(data_dir="data", with_dvc_info=True, with_vcs_info=False)
-
-#     return df_extract, dvc_info
+    mlflow.log_metric("train_" + score_dict["score_name"], score_dict["train"])
+    mlflow.log_metric("val_" + score_dict["score_name"], score_dict["val"])
+    mlflow.log_metric("test_" + score_dict["score_name"], score_dict["test"])
 
 
 @task
 def raw_data_extraction(curr_data_bucket: str) -> pd.DataFrame:
-    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
-                         secret_key=MINIO_SECRET_KEY, secure=False)
+    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
     dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket)
     if not dataframes:
         return pd.DataFrame(), {}
     raw_df = pd.concat(dataframes, ignore_index=True)
     return raw_df, ds_info
+
 
 @task
 def prep_data_construction(
@@ -110,19 +96,23 @@ def prep_data_construction(
     remove_horizonless_rows_transformer,
     target_creation_transformer,
 ) -> pd.DataFrame:
-    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY,
-                         secret_key=MINIO_SECRET_KEY, secure=False)
-    dataset = load_prep_dataset_from_minio(minio_client, ref_data_bucket)              # TODO: in "dev", fetch current splitted dataset, ready for training
-    dataframes, ds_info = load_raw_datasets_from_minio(minio_client, curr_data_bucket) # in "2011-01-01-prod", fetch 2011-01-01-weather_dataset_raw_production.csv in df
+    minio_client = Minio(MINIO_API_HOST, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+    dataset = load_prep_dataset_from_minio(
+        minio_client, ref_data_bucket
+    )  # TODO: in "dev", fetch current splitted dataset, ready for training
+    dataframes, ds_info = load_raw_datasets_from_minio(
+        minio_client, curr_data_bucket
+    )  # in "2011-01-01-prod", fetch 2011-01-01-weather_dataset_raw_production.csv in df
     from prefect import get_run_logger
+
     run_logger = get_run_logger()
     # These are visible in the API Server
     run_logger.info(str(dataframes[0].dtypes))
     run_logger.info(str(dataframes[0]))
     run_logger.info(str(len(dataframes)))
     dataset = prepare_and_merge_splits_to_dataset(
-        dataset,    # dev dataset
-        dataframes, # [2011-01-01_raw_prod.df]
+        dataset,  # dev dataset
+        dataframes,  # [2011-01-01_raw_prod.df]
         dataset_ingestion_transformer,
         remove_horizonless_rows_transformer,
         target_creation_transformer,
@@ -143,52 +133,41 @@ def data_preparation(
     return dataset
 
 
-# @task
-# def build_transformer(params: dict) -> sklearn.pipeline.Pipeline:
-#     adv_feature_names = AdvFeatureNames(
-#         person_info_cols_num, person_info_cols_cat, num_cols_wo_customer, cat_cols_wo_customer
-#     )
-#     transformer = make_advanced_data_transformer(adv_feature_names, KMeans, params)
-#     return transformer
-
-
 @task
-def fit_transformer(
-    predictors_feature_engineering_transformer: sklearn.pipeline.Pipeline,
-    dataset: Dataset
-):
+def fit_transformer(predictors_feature_engineering_transformer: sklearn.pipeline.Pipeline, dataset: Dataset):
     predictors_feature_engineering_transformer.fit(dataset.train_x)
     return predictors_feature_engineering_transformer
+
 
 @task
 def validate_ingested_data(ingested_df, feature_names, target_choice):
     """Run the data integrity suite on `ingested_df`. Return True if all tests pass, False otherwise."""
-    
+
     # Populate Dataset parameters
     features = feature_names.numerical + feature_names.categorical + [target_choice.input_name]
     features = list(set(features))
     cat_features = [target_choice.input_name] + feature_names.categorical
-    cat_features =list(set(cat_features))
-    
+    cat_features = list(set(cat_features))
+
     # Convert ingested_df into a deepchecks Dataset instance
-    ds = DeepChecksDataset(ingested_df, features = features, cat_features = cat_features)
-   
-    # Run integrity suite 
+    ds = DeepChecksDataset(ingested_df, features=features, cat_features=cat_features)
+
+    # Run integrity suite
     integrity_suite = data_integrity()
     results = integrity_suite.run(ds)
     return results.passed()
 
 
 @task
-def score(model, transformer, dataset, metric) -> Dict[str, float|str]:
+def score(model, transformer, dataset, metric) -> Dict[str, float | str]:
     """Returns the evaluation metrics"""
     score_dict = score_evaluation_dict(
-        metric, # alias score
+        metric,  # alias score
         transformer,
         model,
         dataset,
     )
-    return score_dict # with keys "score_name", "train", "val", "test"
+    return score_dict  # with keys "score_name", "train", "val", "test"
 
 
 @task
@@ -201,26 +180,31 @@ def load_artifacts_from_mlflow(run):
 
 
 @task
-def validate_model(dataset, trained_model, trained_predictors_feature_engineering_transformer, run_id, excluded_check=5):
+def validate_model(
+    dataset, trained_model, trained_predictors_feature_engineering_transformer, run_id, excluded_check=5
+):
     """Run the validation suite minus `WeekSegmentPerformance` on `dataset`. Return True if all tests pass, False otherwise."""
     # Populate train_ds
-    X_train = trained_predictors_feature_engineering_transformer.transform(dataset.train_x)
+    x_train = trained_predictors_feature_engineering_transformer.transform(dataset.train_x)
     y_train = dataset.train_y
-    train_ds = DeepChecksDataset(X_train, label=y_train, cat_features=[])
+    train_ds = DeepChecksDataset(x_train, label=y_train, cat_features=[])
     # Populate test_ds
-    X_test = trained_predictors_feature_engineering_transformer.transform(dataset.test_x)
+    x_test = trained_predictors_feature_engineering_transformer.transform(dataset.test_x)
     y_test = dataset.test_y
-    test_ds = DeepChecksDataset(X_test, label=y_test, cat_features=[])
-    # Run model validation suite 
+    test_ds = DeepChecksDataset(x_test, label=y_test, cat_features=[])
+    # Run model validation suite
     evaluation_suite = model_evaluation()
     results = evaluation_suite.remove(excluded_check).run(train_ds, test_ds, trained_model)
     # Log results in json and html formats in "tests" subfolder of "artifats" in run `run_id`
     tmp_dir = create_temporary_dir_if_not_exists()
-    tmp_fpath = lambda fpath: os.path.join(tmp_dir, fpath)
-    with open(tmp_fpath("deepchecks_report.json"), 'w') as f:
+
+    def tmp_fpath(fpath):
+        return os.path.join(tmp_dir, fpath)
+
+    with open(tmp_fpath("deepchecks_report.json"), "w") as f:
         f.write(results.to_json())
     results.save_as_html(tmp_fpath("deepchecks_report.html"))
-    with mlflow.start_run(run_id=run_id) as run:
+    with mlflow.start_run(run_id=run_id):
         mlflow.log_artifacts("tmp", artifact_path="tests")
     clean_temporary_dir()
     return results
@@ -230,5 +214,3 @@ def validate_model(dataset, trained_model, trained_predictors_feature_engineerin
 def deploy():
     result = requests.get(SERVER_API_URL)
     return result.json()
-
-

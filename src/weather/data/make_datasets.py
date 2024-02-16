@@ -8,11 +8,12 @@
 #     >>> df = make_bank_marketing_dataframe(weather_db_file, socio_eco_data_file)
 
 """
+
 import os
 
 import pandas as pd
 
-#from weather.helpers.file_loaders import load_fsspec_locally_temp
+# from weather.helpers.file_loaders import load_fsspec_locally_temp
 
 # def extract_credit_features(row: pd.Series) -> Tuple[str, str]:
 #     """Deduce if the customer has any credit or any default of payment
@@ -93,10 +94,10 @@ import pandas as pd
 #     dataframe = dataframe.drop(columns=["default_x", "default_y"])
 #     return dataframe
 
+
 def make_weather_prediction_dataframe(
-        weather_db_file: os.PathLike,
-        dataset_ingestion_transformer,
-        temp_dir: os.PathLike="") -> pd.DataFrame:
+    weather_db_file: os.PathLike, dataset_ingestion_transformer, temp_dir: os.PathLike = ""
+) -> pd.DataFrame:
     """Extract and build data from the weather station raw data.
 
     # Args:
@@ -138,6 +139,7 @@ def make_weather_prediction_dataframe(
     #     os.remove(db_downloaded_file.name)
 
     return ingested_data
+
 
 # def make_dataframe_splits_bimonthly(df, date_column:str, prefix:str, dirpath: os.PathLike) -> None:
 #     """

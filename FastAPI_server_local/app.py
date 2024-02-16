@@ -1,29 +1,30 @@
-import os
 import logging
-from pathlib import Path
+import os
 import warnings
-warnings.filterwarnings("ignore")
+from pathlib import Path
 
 import joblib
 import pandas as pd
 from dotenv import load_dotenv
-load_dotenv(".env")
 from fastapi import FastAPI
-from twilio.rest import Client
 from minio import Minio
-import mlflow
-
+from twilio.rest import Client
 from utilities.utilities import (
-    Item,
     DataChunk,
+    Item,
+    get_date,
     get_phones,
     json_to_item_df,
-    get_date,
-    save_current_chunk,
     predict_df,
+    save_current_chunk,
     send_messages,
 )
 
+import mlflow
+
+load_dotenv(".env")
+
+warnings.filterwarnings("ignore")
 
 # Load environment variables from .env file
 account_sid = os.getenv("TWILIO_ACCOUNT_SID")
@@ -33,9 +34,9 @@ twilio_client = Client(account_sid, auth_token)
 production_raw_data_minio_file_path = Path(os.getenv("PRODUCTION_RAW_DATA_MINIO_FILE_PATH"))
 prod_bucket = Path(os.getenv("PROD_BUCKET"))
 send_message = os.getenv("SEND_MESSAGE")
-model_registry_uri= os.getenv("MODEL_REGISTRY_URI")
-model_stage= os.getenv("MODEL_STAGE")
-model_name=os.getenv("MODEL_NAME")
+model_registry_uri = os.getenv("MODEL_REGISTRY_URI")
+model_stage = os.getenv("MODEL_STAGE")
+model_name = os.getenv("MODEL_NAME")
 
 # Create minio_client
 MINIO_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
@@ -49,14 +50,12 @@ if not found:
     minio_client.make_bucket("prod")
 else:
     print("Bucket 'prod' already exists.")
-    
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logging.debug('Here the basic path 1 !!!!! : '+str(prod_bucket))
-logging.debug('Here the basic path 2 !!!!! : '+str(os.getenv("PROD_BUCKET")))
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.debug("Here the basic path 2 !!!!! : %s", str(os.getenv("PROD_BUCKET")))
 
-app = FastAPI()    
+app = FastAPI()
 
 # Load model, data_ingestion_transformer, predictors_feature_eng_transforme
 # TODO:
@@ -69,10 +68,10 @@ predictors_feature_eng_transformer = joblib.load(model_folder / "predictors_feat
 data_ingestion_transformer = joblib.load(model_folder / "dataset_ingestion_pipeline.pkl")
 
 # TODO: Jules/docker's phone number
-phones_folder = Path('.')
+phones_folder = Path()
 phones = get_phones(phones_folder)
 
-# Initialization 
+# Initialization
 current_chunk = DataChunk()
 previous_day = None
 previous_date = None
@@ -98,23 +97,21 @@ async def predict(item: Item):
         current_chunk = DataChunk()
 
     y, ingested_df = predict_df(
-        model, 
-        data_ingestion_transformer, 
-        predictors_feature_eng_transformer, 
-        previous_item_df, 
-        new_item_df)
+        model, data_ingestion_transformer, predictors_feature_eng_transformer, previous_item_df, new_item_df
+    )
 
     current_chunk.update(DataChunk(new_item_df, pd.Series([y]), ingested_df))
 
     previous_item_df, previous_day, previous_date = new_item_df, new_day, new_date
 
-    if y==1:
+    if y == 1:
         if send_message:
             send_messages(phones, twilio_client, twilio_phone)
             print("It will rain!")
         return {"prediction": "rain"}
     else:
         return {"prediction": "no rain"}
+
 
 @app.get("/reload/")
 async def reload():
@@ -124,9 +121,3 @@ async def reload():
     loaded_model = mlflow.pyfunc.load_model(model_uri=model_uri)
     model = loaded_model
     return {"action": "The model was loaded"}
-
-
-
-
-
-

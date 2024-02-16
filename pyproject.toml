@@ -63,16 +63,26 @@ ignore = [
     "D103",
     "E501", # line-length
     "E721", # We are old enough to know when to print or not
+    "G004", # Ignore "Logging statement uses f-string"
     "ISC001", # May caue conflicts 
     "PD002", # Ignore "`inplace=True` should be avoided;  it has inconsistent behavior"
     "PD015", # Ignore pd.merge
     "PD901", # Ignore "Avoid using the generic variable name `df` for DataFrames"
+    "PERF203", # Ignore "`try`-`except` within a loop incurs performance overhead"
+    "PTH103", # `os.makedirs()` should be replaced by `Path.mkdir(parents=True)`
+    "PTH110", # `os.path.exists()` should be replaced by `Path.exists()`
+    "PTH118", # `os.path.join()` should be replaced by `Path` with `/` operator
+    "PTH123", # `open()` should be replaced by `Path.open()`
     "RET504", # This should be re-enabled at some point
     "RET505", # This should be re-enabled at some point
     "RUF005",
     "S101", # For tests, there are other options to achieve the same result, but wtv
     "S113", # This should be re-enabled at some point
+    "S603", # Ignore "`subprocess` call: check for execution of untrusted input"
+    "S607", # Ignore "Starting a process with a partial executable path"
     "T201",
+    "TRY300", # Ignore "Consider moving this statement to an `else` block"
+    "TRY401", # Ignore "Redundant exception object included in `logging.exception` call"
 ]
 
 [pytest]
