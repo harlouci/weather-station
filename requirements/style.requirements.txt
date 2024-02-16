@@ -312,8 +312,6 @@ python-dotenv==1.0.1
     # via weather (setup.py)
 pytz==2024.1
     # via pandas
-pywin32==306
-    # via dvc-task
 pyyaml==6.0.1
     # via
     #   omegaconf
