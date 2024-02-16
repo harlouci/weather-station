@@ -13,63 +13,25 @@ env:
   GKE_LOCATION: ${{ vars.GKE_LOCATION }}
 
 jobs:
-
-  setup-build-publish-deploy:
-    # DONE: Consider renaming
-    name: CICD- Build and Deploy
+  ci:
+    name: Check lint, check format
     runs-on: ubuntu-latest
-    # CHANGED
-    # We don't have environment in our current setup
-    # environment: production
-
-    # By specifying this we tell GitHub actions to wait
-    # until job "ci" is done to run our job
-
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
     steps:
-    # Note: By default, the code (this repository) is not checked out
-    #       You need to explicitly checkout
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    # Boilerplate
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v1'
-      with:
-        token_format: 'access_token'
-        credentials_json: '${{ secrets.SA_CICD_KEY }}'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - uses: 'docker/login-action@v1'
-      with:
-        registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
-        username: 'oauth2accesstoken'
-        # DONE: You need to use the value from the 'auth' step,
-        #       Look at the documentation of the action
-        #       google-github-actions/auth@v1 action to see the
-        #       outputs available
-        password: '${{ steps.auth.outputs.access_token }}'
+      - name: Set up style and lint generate-requirements
+        run: |
+          pip install -r requirements/style.requirements.txt
 
-    # Get the GKE credentials so we can deploy to the cluster
-    - name: Set up GKE credentials
-      uses: google-github-actions/get-gke-credentials@v0
-      with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_LOCATION }}
-
-    # Build the Docker images
-    - name: Build
-      run: |-
-        make docker-build-client docker-build-server
-
-    # Push the Docker images to Google Artifact Registry
-    - name: Publish
-      run: |-
-        make docker-push-client docker-push-server
-
-    # Deploy to GKE
-    - name: Deploy to GKE
-      run: |-
-        make deploy-gke
+      - name: Lint
+        run: |
+          ruff check weather-station FastAPI_server src/weather 
+      - name: Format check
+        run: |
+          black --check weather-station FastAPI_server src/weather
