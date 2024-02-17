@@ -19,6 +19,7 @@ from utilities.utilities import (
     save_current_chunk,
     send_messages,
 )
+
 from weather.mlflow.registry import load_production_model
 
 load_dotenv()

@@ -15,6 +15,7 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 from sklearn.pipeline import Pipeline
+
 from weather.data.prep_datasets import Dataset
 
 # 1. Train-val-test score evaluation of a binary classification model
